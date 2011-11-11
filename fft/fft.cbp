@@ -34,8 +34,12 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="process_data.h" />
+		<Unit filename="../include/pin.h" />
 		<Unit filename="../include/workers.h" />
 		<Unit filename="../shared/do_read_fd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../shared/pin.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../shared/utils.c">

@@ -13,7 +13,7 @@ do_process_data(PSSAMPLE in_sample, PSSAMPLE *out_sample)
 	uint32_t out_plane_size;
 	uint32_t in_channel_size;
 	uint8_t i;
-
+/*
 	PSSAMPLESTATE in_state = (PSSAMPLESTATE)sample->private_data;
 	PSSAMPLESTATE out_state = (PSSAMPLESTATE)out_sample->private_data;
 
@@ -44,6 +44,6 @@ do_process_data(PSSAMPLE in_sample, PSSAMPLE *out_sample)
 
 	fftwf_destroy(p);
 	fftwf_free(out_plane);
-
+*/
 	return 0;
 }

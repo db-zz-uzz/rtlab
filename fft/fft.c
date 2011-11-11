@@ -108,8 +108,7 @@ main(int argc, char *argv[])
 				switch (do_read_fd(events[n].data.fd, &sample)) {
 					case SOCK_USE_CLOSE:
 					{
-						if (!close_connection(epollfd, &fd_list, events[n].data.fd, "point 1"))
-						{
+						if (!close_connection(epollfd, &fd_list, events[n].data.fd, "point 1")) {
 							printf("Sample source closed connection. Exit.\n");
 							active = 0;
 							continue;
