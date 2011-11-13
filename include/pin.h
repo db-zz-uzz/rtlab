@@ -5,8 +5,12 @@
 #include <stdint.h>
 #include <netdb.h>
 
+#include "sample.h"
+
+#define PIN_TYPE_UNKNOWN	0x00
 #define PIN_TYPE_INPUT		0x01
 #define PIN_TYPE_OUTPUT		0x02
+#define PIN_TYPE_LISTEN		0x04
 
 #define PIN_EVENT_READ		0x01
 #define PIN_EVENT_WRITE		0x02
@@ -14,25 +18,29 @@
 #define PIN_ERROR			0x04
 #define PIN_OK				0x08
 
+#define PIN_STATUS_READY	1
+#define PIN_STATUS_PARTIAL	3
+#define PIN_STATUS_CLOSED	2
+#define PIN_STATUS_NO_DATA	4
+
 #define MAX_PIN_COUNT		10
 
-typedef void *HSAMPLE;
-typedef struct tagSBUF SBUF, *HBUF;
+typedef struct tagSBUFLISTENTRY SBUFLILSTENTRY, *PSBUFLISTENTRY;
 typedef struct tagSPINLIST SPINLIST, *HPINLIST;
 typedef struct tagSPIN SPIN, *HPIN;
 
-struct tagSBUF {
-	uint8_t *buf;
-	uint32_t buf_size;
-	HBUF next;
+struct tagSBUFLISTENTRY {
+	HBUF buf;
+	PSBUFLISTENTRY next;
 };
 
 struct tagSPIN {
 	int fd;
 	struct sockaddr_in addr;
 
-	HBUF buf_list_head;
-	HBUF buf_list_tail;
+	uint8_t type;
+	PSBUFLISTENTRY buf_list_head;
+	PSBUFLISTENTRY buf_list_tail;
 	HPIN next_pin;
 	HPINLIST parent_list;
 };
@@ -63,7 +71,7 @@ int
 pin_listen(HPINLIST pin_list, int port, int events_count, int backlog);
 
 /* connect to addr and add into list */
-int
+HPIN
 pin_connect(HPINLIST pin_list, char *addr, char *port);
 
 /* discart all pending data and close connection */
@@ -88,7 +96,7 @@ pin_list_get_next_event(HPINLIST pin_list, uint16_t event_type);
 
 /* write all delayed buffers */
 int
-pin_list_deliver(HPINLIST *pin_list);
+pin_list_deliver(HPINLIST pin_list);
 
 int
 pin_read_sample(HPIN pin, HSAMPLE sample);

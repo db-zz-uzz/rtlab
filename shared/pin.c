@@ -4,6 +4,10 @@
 #include <errno.h>
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "pin.h"
 #include "macros.h"
@@ -57,8 +61,7 @@ connect_to(char* addr, char *port)
 	hints.ai_family = CONN_DOMAIN;
 	hints.ai_socktype = CONN_SOCKET;
 
-	s = getaddrinfo(addr, port, &hints, &info_res);
-	if ( s != 0 ) {
+	if ( (s = getaddrinfo(addr, port, &hints, &info_res)) != 0 ) {
 		handle_error(gai_strerror(s));
 	}
 
@@ -97,19 +100,19 @@ pin_create()
 void
 pin_destroy(HPIN pin)
 {
-	HBUF buf;
+	PSBUFLISTENTRY buf_entry;
 
 	if (!pin)
 		return;
 
 	while (pin->buf_list_head) {
-		buf = pin->buf_list_head;
-		pin->buf_list_head = buf->next;
+		buf_entry = pin->buf_list_head;
+		pin->buf_list_head = buf_entry->next;
 
-		if (buf->buf)
-			free(buf->buf);
+		if (buf_entry->buf)
+			buf_free(buf_entry->buf);
 
-		free(buf);
+		free(buf_entry);
 	}
 
 	free(pin);
@@ -120,7 +123,7 @@ pin_list_insert_pin(HPINLIST pin_list, HPIN new_pin)
 {
 	HPIN pin = NULL;
 
-	if (!pin_list || !pin)
+	if (!pin_list || !new_pin)
 		return;
 
 	if (!pin_list->head) {
@@ -176,6 +179,25 @@ pin_list_attach_event(HPIN *pin_ptr, int *size, HPIN pin)
 
 	return;
 }
+
+static void
+setnonblocking(int sock)
+{
+	int opts;
+
+	opts = fcntl(sock, F_GETFL);
+	if (opts < 0) {
+		perror("fcntl(F_GETFL)");
+		exit(EXIT_FAILURE);
+	}
+	opts = (opts | O_NONBLOCK);
+	if (fcntl(sock, F_SETFL, opts) < 0) {
+		perror("fcntl(F_SETFL)");
+		exit(EXIT_FAILURE);
+	}
+	return;
+}
+
 /* ********************/
 /* external functions */
 
@@ -260,6 +282,7 @@ pin_listen(HPINLIST pin_list, int port, int events_count, int backlog)
 
 	pin = pin_create();
 	pin->fd = listen_sock;
+	pin->type = PIN_TYPE_LISTEN;
 
 	pin_list->epollfd = epollfd;
 	pin_list->events = events;
@@ -272,7 +295,7 @@ pin_listen(HPINLIST pin_list, int port, int events_count, int backlog)
 	return PIN_OK;
 }
 
-int
+HPIN
 pin_connect(HPINLIST pin_list, char *addr, char *port)
 {
 	int source_sock;
@@ -280,10 +303,14 @@ pin_connect(HPINLIST pin_list, char *addr, char *port)
 	struct epoll_event ev;
 
 	if (!pin_list || !addr || !port) {
-		return PIN_ERROR;
+		return NULL;
 	}
 
-	source_sock = connect_to(addr, port);
+	if ( (source_sock = connect_to(addr, port)) == -1 )
+	{
+		printf("Cannot connect to '%s:%s'", addr, port);
+		return NULL;
+	}
 
 	ev.events = EPOLLIN | EPOLLET;
 	ev.data.fd = source_sock;
@@ -293,10 +320,11 @@ pin_connect(HPINLIST pin_list, char *addr, char *port)
 
 	pin = pin_create();
 	pin->fd = source_sock;
+	pin->type = PIN_TYPE_INPUT;
 
 	pin_list_insert_pin(pin_list, pin);
 
-	return PIN_OK;
+	return pin;
 }
 
 int
@@ -337,7 +365,7 @@ pin_list_wait(HPINLIST pin_list, int timeout)
 	int nfds, i;
 	HPIN pin;
 
-	if (!pin_list) {
+	if (!pin_list || !pin_list->head) {
 		return PIN_ERROR;
 	}
 
@@ -349,17 +377,47 @@ pin_list_wait(HPINLIST pin_list, int timeout)
 	}
 
 	for (i = 0; i < nfds; i++) {
-		if (events[i].events & EPOLLIN) {
-			pin = pin_list_get_pin(pin_list, events[i].data.fd);
-			pin_list_attach_event(pin_list->read_list,
-								&pin_list->read_list_size,
-								pin);
-		}
-		if (events[i].events & EPOLLOUT) {
-			pin = pin_list_get_pin(pin_list, events[i].data.fd);
-			pin_list_attach_event(pin_list->write_list,
-								&pin_list->write_list_size,
-								pin);
+		pin = pin_list_get_pin(pin_list, events[i].data.fd);
+
+		if (pin->type == PIN_TYPE_LISTEN) {
+			/* accept new connection */
+			/* :BUG: need to check max connections count */
+			struct epoll_event ev;
+			HPIN new_pin = pin_create();
+			socklen_t addrlen = sizeof(new_pin->addr);
+
+			if ( (new_pin->fd = accept(events[i].data.fd,
+										(struct sockaddr *)&new_pin->addr,
+										&addrlen)) == -1 ) {
+				handle_error("accept()");
+			}
+			new_pin->type = PIN_TYPE_OUTPUT;
+			setnonblocking(new_pin->fd);
+
+			ev.events = EPOLLIN | EPOLLET;
+			ev.data.fd = new_pin->fd;
+
+			if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_ADD, new_pin->fd, &ev) == -1) {
+				handle_error("epoll_ctl()");
+			}
+
+			pin_list_insert_pin(pin_list, new_pin);
+
+			printf("new connection: %s:%u\n",
+		 			inet_ntoa(new_pin->addr.sin_addr),
+					ntohs(new_pin->addr.sin_port));
+
+		} else {
+			if (events[i].events & EPOLLIN) {
+				pin_list_attach_event(pin_list->read_list,
+									&pin_list->read_list_size,
+									pin);
+			}
+			if (events[i].events & EPOLLOUT) {
+				pin_list_attach_event(pin_list->write_list,
+									&pin_list->write_list_size,
+									pin);
+			}
 		}
 	}
 
@@ -399,3 +457,16 @@ pin_list_get_next_event(HPINLIST pin_list, uint16_t event_type)
 	return pin;
 }
 
+int
+pin_list_deliver(HPINLIST pin_list)
+{
+	return PIN_OK;
+}
+
+
+int
+pin_read_sample(HPIN pin, HSAMPLE buffer)
+{
+
+	return PIN_STATUS_NO_DATA;
+}
