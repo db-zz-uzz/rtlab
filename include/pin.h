@@ -1,11 +1,10 @@
 #ifndef PIN_H_INCLUDED
 #define PIN_H_INCLUDED
 
-#include <sys/queue.h>
 #include <stdint.h>
 #include <netdb.h>
 
-#include "sample.h"
+#include "buffer.h"
 
 #define PIN_TYPE_UNKNOWN	0x00
 #define PIN_TYPE_INPUT		0x01
@@ -25,13 +24,17 @@
 
 #define MAX_PIN_COUNT		10
 
-typedef struct tagSBUFLISTENTRY SBUFLILSTENTRY, *PSBUFLISTENTRY;
+typedef struct tagSBUFLISTENTRY SBUFLISTENTRY, *PSBUFLISTENTRY;
 typedef struct tagSPINLIST SPINLIST, *HPINLIST;
 typedef struct tagSPIN SPIN, *HPIN;
 
 struct tagSBUFLISTENTRY {
-	HBUF buf;
-	PSBUFLISTENTRY next;
+	uint8_t *buffer;
+	uint32_t size;
+	uint32_t written;
+	uint8_t ref;
+
+	SBUFLISTENTRY *next;
 };
 
 struct tagSPIN {
@@ -39,8 +42,8 @@ struct tagSPIN {
 	struct sockaddr_in addr;
 
 	uint8_t type;
-	PSBUFLISTENTRY buf_list_head;
-	PSBUFLISTENTRY buf_list_tail;
+	SBUFLISTENTRY *buf_list_head;
+	SBUFLISTENTRY **buf_list_tail;
 	HPIN next_pin;
 	HPINLIST parent_list;
 };
@@ -102,6 +105,6 @@ int
 pin_read_sample(HPIN pin, HSAMPLE sample);
 
 int
-pin_write_sample(HPIN pin, HSAMPLE sample);
+pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample);
 
 #endif // PIN_H_INCLUDED

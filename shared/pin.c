@@ -92,6 +92,7 @@ pin_create()
 	pin = malloc(sizeof(SPIN));
 	if (pin) {
 		memset(pin, 0, sizeof(SPIN));
+		pin->buf_list_tail = &(pin->buf_list_head);
 	}
 
 	return pin;
@@ -109,8 +110,8 @@ pin_destroy(HPIN pin)
 		buf_entry = pin->buf_list_head;
 		pin->buf_list_head = buf_entry->next;
 
-		if (buf_entry->buf)
-			buf_free(buf_entry->buf);
+		if (buf_entry->buffer)
+			free(buf_entry->buffer);
 
 		free(buf_entry);
 	}
@@ -226,7 +227,6 @@ pin_list_destroy(HPINLIST pin_list) {
 		pin_list->head = pin->next_pin;
 
 		pin_disconnect(pin);
-		pin_destroy(pin);
 	}
 
 	if (pin_list->read_list)
@@ -308,7 +308,7 @@ pin_connect(HPINLIST pin_list, char *addr, char *port)
 
 	if ( (source_sock = connect_to(addr, port)) == -1 )
 	{
-		printf("Cannot connect to '%s:%s'", addr, port);
+		printf("Cannot connect to '%s:%s'\n", addr, port);
 		return NULL;
 	}
 
@@ -451,8 +451,10 @@ pin_list_get_next_event(HPINLIST pin_list, uint16_t event_type)
 		}
 	}
 
-	pin = arr[*size];
-	*size -= 1;
+	if (*size > 0) {
+		*size -= 1;
+		pin = arr[*size];
+	}
 
 	return pin;
 }
@@ -460,6 +462,79 @@ pin_list_get_next_event(HPINLIST pin_list, uint16_t event_type)
 int
 pin_list_deliver(HPINLIST pin_list)
 {
+	HPIN pin;
+	PSBUFLISTENTRY buf;
+	uint32_t ret = 0;
+
+	/* loop through pin list
+		and write data if we have pending buffers */
+	while ( (pin = pin_list_get_next_event(pin_list, PIN_EVENT_WRITE)) != NULL ) {
+	//for (pin = pin_list->head; pin != NULL; pin = pin->next_pin) {
+
+		while ( (buf = pin->buf_list_head) != NULL ) {
+
+			ret = send(pin->fd, buf->buffer + 1 + buf->written, buf->size - buf->written, MSG_DONTWAIT);
+
+			if (ret == 0) {
+				HPIN tmp_pin = pin->next_pin;
+				fprintf(stderr, "error while sending data (0). disconnect client.\n");
+				pin_disconnect(pin);
+				pin = tmp_pin;
+				/* connection closed */
+				return PIN_STATUS_CLOSED;
+			} else if (ret == -1) {
+				if (errno == EWOULDBLOCK || errno == EAGAIN) {
+					/* no more data can be written*/
+					break;
+				} else {
+					/* error occured */
+					HPIN tmp_pin = pin->next_pin;
+
+					fprintf(stderr, "%s(): send error\n", __func__);
+					pin_disconnect(pin);
+					pin = tmp_pin;
+
+					return PIN_STATUS_CLOSED;
+				}
+			}
+
+			buf->written += ret;
+
+			if (buf->written == buf->size) {
+				PSBUFLISTENTRY tmp_buf = buf->next;
+				/* if entrie buffer was written, free it and go to next */
+				buf->buffer[0] -= 1;
+				if (buf->buffer[0] == 0) {
+					free(buf->buffer);
+				}
+				free(buf);
+
+				buf = tmp_buf;
+				if ( (pin->buf_list_head = buf) == NULL ) {
+					pin->buf_list_tail = &(pin->buf_list_head);
+				}
+
+			} else {
+				/* continue wait */
+				break;
+			}
+		}
+
+		if (pin->buf_list_head == NULL) {
+			/* remove fd from epoll wait */
+			struct epoll_event ev;
+
+			ev.events = EPOLLIN | EPOLLET;
+			ev.data.fd = pin->fd;
+
+			if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_MOD, pin->fd, &ev) == -1) {
+				handle_error("epoll_ctl()");
+			}
+
+		}
+
+	}
+
 	return PIN_OK;
 }
 
@@ -467,6 +542,127 @@ pin_list_deliver(HPINLIST pin_list)
 int
 pin_read_sample(HPIN pin, HSAMPLE buffer)
 {
+	int res = PIN_STATUS_NO_DATA;
+	int ret;
+	uint32_t read_len;
 
-	return PIN_STATUS_NO_DATA;
+	read_len = (buffer->alloced_size > buffer->full_size) ?
+				buffer->full_size - buffer->size :
+				buffer->alloced_size - buffer->size;
+
+	for (;read_len > 0;) {
+		ret = recv(pin->fd, buffer->buf + buffer->size, read_len, MSG_DONTWAIT);
+		if (ret == 0) {
+			/* connection closed */
+			return PIN_STATUS_CLOSED;
+		} else if (ret == -1) {
+			if (errno == EWOULDBLOCK || errno == EAGAIN) {
+				/* no more data */
+				/* printf("return no-data\n"); */
+				break;
+			} else {
+				/* error occured */
+				fprintf(stderr, "%s(): recv error\n", __func__);
+				return PIN_STATUS_CLOSED;
+			}
+		}
+
+		buffer-> size += ret;
+		read_len -= ret;
+
+		if (buffer->size == buffer->full_size) {
+			if ((buffer->flags & BUFFER_FLAG_HEADER_READED) == 0 &&
+				buffer->size_callback != NULL) {
+
+				uint32_t full_size = buffer->size_callback(buffer, BUFFER_SIZE_TYPE_MESSAGE);
+				/* have entrie header.
+				 * mark buffer as recieved header and get entrie message size */
+				buf_resize(buffer, full_size);
+				buffer->full_size = full_size;
+
+				read_len = buffer->full_size - buffer->size;
+
+				buffer->flags |= BUFFER_FLAG_HEADER_READED;
+			} else {
+				/* have complete buffer */
+				break;
+			}
+		}
+	}
+
+	if (buffer->size == buffer->full_size) {
+		if (buffer->flags & BUFFER_FLAG_HEADER_READED) {
+			res = PIN_STATUS_READY;
+		} else {
+			res = PIN_STATUS_PARTIAL;
+		}
+	} else {
+		res = PIN_STATUS_NO_DATA;
+	}
+
+	return res;
 }
+
+int
+pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample)
+{
+	PSBUFLISTENTRY packet = NULL;
+	HPIN pin;
+	uint8_t inited = 0;
+	uint8_t *buffer;
+	struct epoll_event ev;
+
+	int loop = 1;
+
+	/* loop through output pins */
+	for (pin = pin_list->head; pin != NULL; pin = pin->next_pin) {
+		if (pin->type == PIN_TYPE_OUTPUT) {
+			if (inited == 0) {
+				buffer = malloc(sample->size + 1);
+				memcpy(buffer + 1, sample->buf, sample->size);
+				buffer[0] = 0;
+				inited = 1;
+			}
+			packet = malloc(sizeof(SBUFLISTENTRY));
+			packet->buffer = buffer;
+			packet->size = sample->size;
+			packet->written = 0;
+			packet->next = NULL;
+			packet->buffer[0] += 1;
+
+			/* !! POSSIBLE BUG HERE !! Fixed */
+/*
+			printf("pin %p ", pin);
+			printf(" ph %p ", pin->buf_list_head);
+			printf(" pt %p ", pin->buf_list_tail);
+			printf("*pt %p\n", *pin->buf_list_tail);
+*/
+			*(pin->buf_list_tail) = packet;
+			pin->buf_list_tail = &(packet->next);
+/*
+			printf("pin %p ", pin);
+			printf(" ph %p ", pin->buf_list_head);
+			printf(" pt %p ", pin->buf_list_tail);
+			printf("*pt %p\n", *pin->buf_list_tail);
+*/
+			ev.events = EPOLLIN | EPOLLET | EPOLLOUT;
+			ev.data.fd = pin->fd;
+
+			if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_MOD, pin->fd, &ev) == -1) {
+				handle_error("epoll_ctl()");
+			}
+		}
+	}
+
+	return PIN_OK;
+}
+
+
+
+
+
+
+
+
+
+

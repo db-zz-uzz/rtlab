@@ -130,7 +130,7 @@ main(int argc, char *argv[])
 	SSAMPLE sample = {0};
 
 	if (argc < 3) {
-		printf("use: split <host> <port>\n");
+		printf("use: split <host> <port> <listen_port>\n");
 		return 0;
 	}
 

@@ -6,4 +6,5 @@
 typedef void *HSAMPLE;
 
 
+
 #endif // SAMPLE_H_INCLUDED

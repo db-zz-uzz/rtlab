@@ -8,12 +8,41 @@
 #include <string.h>
 #include <errno.h>
 
+#include "audio_sample.h"
 #include "buffer.h"
 #include "pin.h"
 
 #define MAX_EVENTS 5
 #define BACKLOG 50
 
+static uint32_t
+sample_size_callback(HBUF buf, uint8_t type)
+{
+	uint32_t res = 0;
+
+	switch (type) {
+	case BUFFER_SIZE_TYPE_MESSAGE:
+		if (buf) {
+			PSSAMPLEHEADER header = (PSSAMPLEHEADER)buf->buf;
+			res += BUF_SIZE(header);
+		}
+		/* fall through due to need complete data size */
+	case BUFFER_SIZE_TYPE_HEADER:
+		res += HEADER_SIZE;
+
+	default:
+		/* unknown action */
+		break;
+	}
+
+	return res;
+}
+
+static uint32_t
+dummy_size_callback(HBUF buf, uint8_t type)
+{
+	return 8;
+}
 
 int
 main(int argc, char *argv[])
@@ -27,8 +56,11 @@ main(int argc, char *argv[])
 	HPIN input_pin;
 	HSAMPLE sample, input_sample, dummy_sample;
 
+	input_sample = buf_alloc(sample_size_callback);
+	dummy_sample = buf_alloc(dummy_size_callback);
+
 	if (argc < 3) {
-		printf("use: split <host> <port>\n");
+		printf("use: split <host> <port> <listen_port>\n");
 		return 0;
 	}
 
@@ -41,7 +73,12 @@ main(int argc, char *argv[])
 	pin_listen(connection, listen_port, MAX_EVENTS, BACKLOG);
 	input_pin = pin_connect(connection, argv[1], argv[2]);
 
-	printf("Enter main loop\n");
+	if (!input_pin)
+		active = 0;
+
+	if (active)
+		printf("Enter main loop\n");
+
 	while (active && pin_list_wait(connection, -1) != PIN_ERROR) {
 
 		/* loop for pins with active events */
@@ -52,20 +89,34 @@ main(int argc, char *argv[])
 			switch (pin_read_sample(pin, sample)) {
 				case PIN_STATUS_READY:
 				{
+					PSSAMPLEHEADER header = (PSSAMPLEHEADER)sample->buf;
+					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
+
 					/* process data here */
+
+					pin_list_write_sample(connection, sample);
+					sample->size = 0;
 					break;
 				}
 				case PIN_STATUS_CLOSED:
 				{
+					printf("connection closed\n");
+					pin_disconnect(pin);
 					/* close data and skip iteration */
 					continue;
 				}
 				case PIN_STATUS_PARTIAL:
 				{
+					printf(" partial data. %u / %u\n", sample->size, sample->full_size);
 					/* do nothing since no data ready */
 					break;
 				}
 				case PIN_STATUS_NO_DATA:
+				{
+					printf("      no data. %u / %u\n", sample->size, sample->full_size);
+					/* do nothing since no data ready */
+					break;
+				}
 				default:
 				{
 					break;

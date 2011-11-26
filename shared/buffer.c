@@ -1,14 +1,26 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "buffer.h"
 
 HBUF
-buf_alloc(uint32_t size) {
+buf_alloc(buf_size_callback size_callback) {
 	HBUF res = NULL;
-	uint8_t *buf;
+	uint8_t *buf = NULL;
+	uint32_t size = 0;
+
+	if (!size_callback) {
+		return NULL;
+	}
 
 	res = malloc(sizeof(SBUF));
-	buf = malloc(sizeof(size));
+	memset(res, 0, sizeof(SBUF));
+
+	size = size_callback(res, BUFFER_SIZE_TYPE_HEADER);
+
+	if (size > 0) {
+		buf = malloc(size);
+	}
 
 	if (!res || (!buf && size > 0)) {
 		if (res) {
@@ -17,8 +29,10 @@ buf_alloc(uint32_t size) {
 		}
 	} else {
 		res->buf = buf;
-		res->size = size;
+		res->alloced_size = size;
+		res->full_size = size;
 		res->ref = 1;
+		res->size_callback = size_callback;
 	}
 
 	return res;
@@ -41,6 +55,8 @@ buf_free(HBUF buf)
 	}
 
 	free(buf);
+
+	return;
 }
 
 void
@@ -50,5 +66,21 @@ buf_get(HBUF buf)
 		/* :BUG: ref counter can be overflowed */
 		buf->ref++;
 	}
+
+	return;
 }
 
+void
+buf_resize(HBUF buf, uint32_t new_size)
+{
+	if (!buf || buf->alloced_size == new_size)
+		return;
+
+	if (buf->size > new_size)
+		buf->size = new_size;
+
+	buf->buf = realloc(buf->buf, new_size);
+	buf->alloced_size = new_size;
+
+	return;
+}
