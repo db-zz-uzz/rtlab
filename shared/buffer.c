@@ -86,3 +86,9 @@ buf_resize(HBUF buf, uint32_t new_size)
 
 	return;
 }
+
+uint32_t
+dummy_size_callback(HBUF buf, uint8_t type)
+{
+	return 8;
+}

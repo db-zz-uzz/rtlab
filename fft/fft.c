@@ -16,12 +16,6 @@
 #define MAX_EVENTS 5
 #define BACKLOG 50
 
-static uint32_t
-dummy_size_callback(HBUF buf, uint8_t type)
-{
-	return 8;
-}
-
 int
 main(int argc, char *argv[])
 {
