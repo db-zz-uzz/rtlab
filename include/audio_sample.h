@@ -17,6 +17,7 @@ enum E_SOCK_USE {
 enum E_BUFFER_TYPE {
 	BUF_TYPE_INTERLEAVED 	= 0,
 	BUF_TYPE_SEQUENTIAL 	= 1,
+	BUF_TYPE_FFTED			= 2,
 };
 
 typedef struct tagSSAMPLEHEADER {

@@ -47,7 +47,7 @@ do_process_data(HBUF in_sample, HBUF *out_sample)
 
 	out_header->sample_size = sizeof(fftwf_complex);
 	out_header->samples = in_header->samples;
-	out_header->buf_type = in_header->buf_type;
+	out_header->buf_type = BUF_TYPE_FFTED;
 	out_header->number = in_header->number;
 	out_header->timestamp = in_header->timestamp;
 	out_header->channels = in_header->channels;

@@ -2,6 +2,23 @@
 
 #include "audio_sample.h"
 
+static char *
+buf_type_letter(enum E_BUFFER_TYPE buf_type)
+{
+	switch (buf_type) {
+		case BUF_TYPE_INTERLEAVED:
+			return "I";
+
+		case BUF_TYPE_SEQUENTIAL:
+			return "S";
+
+		case BUF_TYPE_FFTED:
+			return "F";
+
+		default:
+			return "U";
+	}
+}
 
 void
 print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
@@ -11,14 +28,14 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 
 	md5_buffer((char *)buf, data_size, (void *)res);
 
-	printf("[%6u] %i.%06i  %u/%u/%u (%s)  ",
+	printf("[%6u] %ld.%06ld  %u/%u/%u (%s)  ",
 			header->number,
 			header->timestamp.tv_sec,
 			header->timestamp.tv_usec,
 			header->channels,
 			header->sample_size,
 			header->samples,
-			header->buf_type == BUF_TYPE_INTERLEAVED ? "I" : "S");
+			buf_type_letter(header->buf_type));
 
 	for (i = 0; i < 16; i++) {
 		printf("%02x", res[i]);

@@ -71,7 +71,7 @@ main(int argc, char *argv[])
 								processed_sample->buf + HEADER_SIZE,
 								processed_sample->size - HEADER_SIZE);
 
-					pin_list_write_sample(connection, sample);
+					pin_list_write_sample(connection, processed_sample);
 					sample->size = 0;
 					break;
 				}
