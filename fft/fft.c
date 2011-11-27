@@ -11,6 +11,7 @@
 #include "audio_sample.h"
 #include "buffer.h"
 #include "pin.h"
+#include "process_data.h"
 
 #define MAX_EVENTS 5
 #define BACKLOG 50
@@ -54,7 +55,7 @@ main(int argc, char *argv[])
 	HPINLIST connection = NULL;
 	HPIN pin;
 	HPIN input_pin;
-	HSAMPLE sample, input_sample, dummy_sample;
+	HSAMPLE sample, input_sample, dummy_sample, processed_sample = NULL;
 
 	input_sample = buf_alloc(sample_size_callback);
 	dummy_sample = buf_alloc(dummy_size_callback);
@@ -93,6 +94,11 @@ main(int argc, char *argv[])
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 
 					/* process data here */
+					do_process_data(sample, &processed_sample);
+
+					print_header((PSSAMPLEHEADER)processed_sample->buf,
+								processed_sample->buf + HEADER_SIZE,
+								processed_sample->size - HEADER_SIZE);
 
 					pin_list_write_sample(connection, sample);
 					sample->size = 0;

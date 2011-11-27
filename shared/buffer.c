@@ -9,14 +9,16 @@ buf_alloc(buf_size_callback size_callback) {
 	uint8_t *buf = NULL;
 	uint32_t size = 0;
 
-	if (!size_callback) {
+/*	if (!size_callback) {
 		return NULL;
-	}
+	} */
 
 	res = malloc(sizeof(SBUF));
 	memset(res, 0, sizeof(SBUF));
 
-	size = size_callback(res, BUFFER_SIZE_TYPE_HEADER);
+	if (size_callback) {
+		size = size_callback(res, BUFFER_SIZE_TYPE_HEADER);
+	}
 
 	if (size > 0) {
 		buf = malloc(size);

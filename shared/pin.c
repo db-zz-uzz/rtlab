@@ -634,20 +634,9 @@ pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample)
 			packet->buffer[0] += 1;
 
 			/* !! POSSIBLE BUG HERE !! Fixed */
-/*
-			printf("pin %p ", pin);
-			printf(" ph %p ", pin->buf_list_head);
-			printf(" pt %p ", pin->buf_list_tail);
-			printf("*pt %p\n", *pin->buf_list_tail);
-*/
 			*(pin->buf_list_tail) = packet;
 			pin->buf_list_tail = &(packet->next);
-/*
-			printf("pin %p ", pin);
-			printf(" ph %p ", pin->buf_list_head);
-			printf(" pt %p ", pin->buf_list_tail);
-			printf("*pt %p\n", *pin->buf_list_tail);
-*/
+
 			ev.events = EPOLLIN | EPOLLET | EPOLLOUT;
 			ev.data.fd = pin->fd;
 
