@@ -27,3 +27,26 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 
 	return;
 }
+
+uint32_t
+sample_size_callback(HBUF buf, uint8_t type)
+{
+	uint32_t res = 0;
+
+	switch (type) {
+	case BUFFER_SIZE_TYPE_MESSAGE:
+		if (buf) {
+			PSSAMPLEHEADER header = (PSSAMPLEHEADER)buf->buf;
+			res += BUF_SIZE(header);
+		}
+		/* fall through due to need complete data size */
+	case BUFFER_SIZE_TYPE_HEADER:
+		res += HEADER_SIZE;
+
+	default:
+		/* unknown action */
+		break;
+	}
+
+	return res;
+}

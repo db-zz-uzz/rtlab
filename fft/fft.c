@@ -17,29 +17,6 @@
 #define BACKLOG 50
 
 static uint32_t
-sample_size_callback(HBUF buf, uint8_t type)
-{
-	uint32_t res = 0;
-
-	switch (type) {
-	case BUFFER_SIZE_TYPE_MESSAGE:
-		if (buf) {
-			PSSAMPLEHEADER header = (PSSAMPLEHEADER)buf->buf;
-			res += BUF_SIZE(header);
-		}
-		/* fall through due to need complete data size */
-	case BUFFER_SIZE_TYPE_HEADER:
-		res += HEADER_SIZE;
-
-	default:
-		/* unknown action */
-		break;
-	}
-
-	return res;
-}
-
-static uint32_t
 dummy_size_callback(HBUF buf, uint8_t type)
 {
 	return 8;
