@@ -8,25 +8,15 @@
 #include <string.h>
 #include <errno.h>
 
-#include "utils.h"
-#include "workers.h"
+#include "audio_sample.h"
+#include "buffer.h"
+#include "pin.h"
+#include "process_data.h"
 
 #define MAX_EVENTS 5
+#define BACKLOG 50
 
-
-static void
-private_destructor(void *data)
-{
-	PSSAMPLESTATE state = (PSSAMPLESTATE)data;
-	if (!state) {
-		return;
-	}
-	if (state->buf) {
-		free(state->buf);
-	}
-	return;
-}
-
+#if 0
 static int
 do_split_2ch2bytes(PSSAMPLE sample)
 {
@@ -109,25 +99,22 @@ do_process_data(PSSAMPLE sample)
 
 	return 0;
 }
+#endif
 
 int
 main(int argc, char *argv[])
 {
-	int listen_sock, source_sock, epollfd, nfds, n;
-	struct epoll_event ev, events[MAX_EVENTS];
-
-	struct fd_list_head fd_list = {0};
-	struct fd_list_entry *np = NULL;
-
-	uint32_t buf_size = 0;
-	uint8_t *buf = NULL;
-
 	uint8_t active = 1;
 
 	int listen_port = 15020;
 
-	/* record parameters */
-	SSAMPLE sample = {0};
+	HPINLIST connection = NULL;
+	HPIN pin;
+	HPIN input_pin;
+	HSAMPLE sample, input_sample, dummy_sample, processed_sample = NULL;
+
+	input_sample = buf_alloc(sample_size_callback);
+	dummy_sample = buf_alloc(dummy_size_callback);
 
 	if (argc < 3) {
 		printf("use: split <host> <port> <listen_port>\n");
@@ -139,97 +126,76 @@ main(int argc, char *argv[])
 		printf("Will listen %i port\n", listen_port);
 	}
 
-	source_sock = connect_to(argv[1], argv[2]);
-	listen_sock = bind_addr(listen_port, 50);
+	connection = pin_list_create();
+	pin_listen(connection, listen_port, MAX_EVENTS, BACKLOG);
+	input_pin = pin_connect(connection, argv[1], argv[2]);
 
-	if ( (epollfd = epoll_create(MAX_EVENTS)) == -1 ) {
-		handle_error("epoll_create()");
-	}
+	if (!input_pin)
+		active = 0;
 
-	ev.events = EPOLLIN;
-	ev.data.fd = listen_sock;
-	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
-		handle_error("epoll_ctl()");
-	}
+	if (active)
+		printf("Enter main loop\n");
 
-	ev.events = EPOLLIN | EPOLLET;
-	ev.data.fd = source_sock;
-	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, source_sock, &ev) == -1) {
-		handle_error("epoll_ctl()");
-	}
+	while (active && pin_list_wait(connection, -1) != PIN_ERROR) {
 
-	sample.epollfd = epollfd;
-	sample.write_func = do_write_fd;
-	sample.private_data = calloc(1, sizeof(SSAMPLESTATE));
-	sample.private_destructor = private_destructor;
+		/* loop for pins with active events */
+		while ( (pin = pin_list_get_next_event(connection, PIN_EVENT_READ)) != NULL ) {
 
-	LIST_INIT(&fd_list);
+			sample = pin == input_pin ? input_sample : dummy_sample;
 
-	printf("enter loop\n");
-	while (active) {
-		memset(buf, 0, buf_size);
+			switch (pin_read_sample(pin, sample)) {
+				case PIN_STATUS_READY:
+				{
+					PSSAMPLEHEADER header = (PSSAMPLEHEADER)sample->buf;
+					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 
-		if ( (nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1)) == -1 ) {
-			handle_error("epoll_pwait()");
-		}
+					/* process data here */
+					do_process_data(sample, &processed_sample);
 
-		/* handle connections */
-		for (n = 0; n < nfds; n++) {
-			if (events[n].data.fd == listen_sock) {
-				/* accept new connection */
-				printf("accept connection\n");
-				make_connection(epollfd, &fd_list, events[n].data.fd);
+					print_header((PSSAMPLEHEADER)processed_sample->buf,
+								processed_sample->buf + HEADER_SIZE,
+								processed_sample->size - HEADER_SIZE);
 
-			} else {
-				/* use socket */
-				/* read data from input socket,
-					transform data if buffer is ready
-					and write it to all output sockets */
-				switch (do_read_fd(events[n].data.fd, &sample)) {
-					case SOCK_USE_CLOSE:
-					{
-						if (!close_connection(epollfd, &fd_list, events[n].data.fd, "point 1"))
-						{
-							printf("Sample source closed connection. Exit.\n");
-							active = 0;
-							continue;
-						}
-						break;
+					pin_list_write_sample(connection, sample);
+					sample->size = 0;
+					break;
+				}
+				case PIN_STATUS_CLOSED:
+				{
+					if (pin->type == PIN_TYPE_INPUT) {
+						printf("one of inputs closed. exit.\n");
+						active = 0;
+						continue;
+					} else {
+						printf("connection closed\n");
 					}
-					case SOCK_USE_READY:
-					{
-						print_md5(&sample);
-
-						do_process_data(&sample);
-
-						print_md5(&sample);
-						/* try to write data into open connections */
-						deliver_data(&fd_list, &sample);
-						break;
-					}
-					case SOCK_USE_OK:
-					default:
-					{
-						break;
-					}
+					pin_disconnect(pin);
+					/* close data and skip iteration */
+					continue;
+				}
+				case PIN_STATUS_PARTIAL:
+				{
+					printf(" partial data. %u / %u\n", sample->size, sample->full_size);
+					/* do nothing since no data ready */
+					break;
+				}
+				case PIN_STATUS_NO_DATA:
+				{
+					printf("      no data. %u / %u\n", sample->size, sample->full_size);
+					/* do nothing since no data ready */
+					break;
+				}
+				default:
+				{
+					break;
 				}
 			}
 		}
+
+		pin_list_deliver(connection);
 	}
 
-	sample.buf = NULL;
-	sample_free_buffer(&sample);
-
-	while (fd_list.lh_first != NULL) {
-		np = fd_list.lh_first;
-		LIST_REMOVE(np, l);
-
-		epoll_ctl(epollfd, EPOLL_CTL_DEL, np->fd, NULL);
-		close(np->fd);
-
-		free(np);
-	}
-	close(listen_sock);
+	pin_list_destroy(connection);
 
 	exit(EXIT_SUCCESS);
 }

@@ -5,6 +5,7 @@
 		<Option title="split" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
+		<Option virtualFolders="headers/;shared/;" />
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/split" prefix_auto="1" extension_auto="1" />
@@ -24,11 +25,34 @@
 		<Linker>
 			<Add option="-lxcrypt" />
 		</Linker>
-		<Unit filename="../include/workers.h" />
-		<Unit filename="../shared/do_read_fd.c">
-			<Option compilerVar="CC" />
+		<Unit filename="../include/audio_sample.h">
+			<Option virtualFolder="headers/" />
 		</Unit>
-		<Unit filename="../shared/utils.c">
+		<Unit filename="../include/buffer.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../include/macros.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../include/pin.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../include/process_data.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../shared/audio_sample.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="shared/" />
+		</Unit>
+		<Unit filename="../shared/buffer.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="shared/" />
+		</Unit>
+		<Unit filename="../shared/pin.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="shared/" />
+		</Unit>
+		<Unit filename="process_data.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="split.c">
