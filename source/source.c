@@ -35,7 +35,7 @@ main(int argc, char *argv[])
 	struct fd_list_entry *np = NULL;
 
 	/* buffer length in samples. would be multiplied by channels and sample size */
-	int buffer_length = 10000;
+	int buffer_length = 11025;
 	int listen_port = 5002;
 
 	/* record parameters */
@@ -77,7 +77,7 @@ main(int argc, char *argv[])
 	}
 
 	sh.channels = ss.channels;
-	sh.sample_size = pa_sample_size(&ss) / 2;
+	sh.sample_size = pa_sample_size(&ss);
 	sh.samples = buffer_length;
 	sh.buf_type = BUF_TYPE_INTERLEAVED;
 
