@@ -206,14 +206,43 @@ setnonblocking(int sock)
 /* external functions */
 
 HPINLIST
-pin_list_create()
+pin_list_create(int events_count)
 {
 	HPINLIST pin_list = malloc(sizeof(SPINLIST));
+	int epollfd;
+	HPIN *read_list, *write_list;
+	struct epoll_event *events;
+
+	if (!(events = malloc(events_count * sizeof(struct epoll_event))) ||
+		!(read_list = malloc(events_count * sizeof(HPIN))) ||
+		!(write_list = malloc(events_count * sizeof(HPIN))) ) {
+
+		if (events) {
+			free(events);
+		}
+		if (read_list) {
+			free(read_list);
+		}
+		if (write_list) {
+			free(write_list);
+		}
+		return NULL;
+	}
 
 	if (pin_list) {
 		memset(pin_list, 0, sizeof(SPINLIST));
 		pin_list->epollfd = -1;
 	}
+
+	pin_list->events = events;
+	pin_list->events_count = events_count;
+	pin_list->read_list = read_list;
+	pin_list->write_list = write_list;
+
+	if ( (epollfd = epoll_create(events_count)) == -1 ) {
+		handle_error("epoll_create()");
+	}
+	pin_list->epollfd = epollfd;
 
 	return pin_list;
 }
@@ -243,55 +272,26 @@ pin_list_destroy(HPINLIST pin_list) {
 }
 
 int
-pin_listen(HPINLIST pin_list, int port, int events_count, int backlog)
+pin_listen(HPINLIST pin_list, int port, int backlog)
 {
-	int listen_sock, epollfd;
+	int listen_sock;
 	HPIN pin;
-	HPIN *read_list, *write_list;
-	struct epoll_event ev, *events;
+	struct epoll_event ev;
 
-	if (!pin_list || pin_list->epollfd != -1)
+	if (!pin_list)
 		return PIN_ERROR;
-
-	if (!(events = malloc(events_count * sizeof(struct epoll_event))) ||
-		!(read_list = malloc(events_count * sizeof(HPIN))) ||
-		!(write_list = malloc(events_count * sizeof(HPIN))) ) {
-
-		if (events) {
-			free(events);
-		}
-		if (read_list) {
-			free(read_list);
-		}
-		if (write_list) {
-			free(write_list);
-		}
-		return PIN_ERROR;
-	}
-
-
 
 	listen_sock = bind_addr(port, backlog);
 
-	if ( (epollfd = epoll_create(events_count)) == -1 ) {
-		handle_error("epoll_create()");
-	}
-
 	ev.events = EPOLLIN;
 	ev.data.fd = listen_sock;
-	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
+	if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
 		handle_error("epoll_ctl()");
 	}
 
 	pin = pin_create();
 	pin->fd = listen_sock;
 	pin->type = PIN_TYPE_LISTEN;
-
-	pin_list->epollfd = epollfd;
-	pin_list->events = events;
-	pin_list->events_count = events_count;
-	pin_list->read_list = read_list;
-	pin_list->write_list = write_list;
 
 	pin_list_insert_pin(pin_list, pin);
 

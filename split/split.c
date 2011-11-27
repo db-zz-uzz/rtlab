@@ -41,8 +41,8 @@ main(int argc, char *argv[])
 		printf("Will listen %i port\n", listen_port);
 	}
 
-	connection = pin_list_create();
-	pin_listen(connection, listen_port, MAX_EVENTS, BACKLOG);
+	connection = pin_list_create(MAX_EVENTS);
+	pin_listen(connection, listen_port, BACKLOG);
 	input_pin = pin_connect(connection, argv[1], argv[2]);
 
 	if (!input_pin)

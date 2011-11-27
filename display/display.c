@@ -11,41 +11,33 @@
 #include "audio_sample.h"
 #include "buffer.h"
 #include "pin.h"
-#include "process_data.h"
 
 #define MAX_EVENTS 5
-#define BACKLOG 50
 
 int
 main(int argc, char *argv[])
 {
 	uint8_t active = 1;
 
-	int listen_port = 15020;
-
 	HPINLIST connection = NULL;
 	HPIN pin;
-	HPIN input_pin;
-	HSAMPLE sample, input_sample, dummy_sample, processed_sample = NULL;
+	HPIN input_spl_pin, input_fft_pin;
+	HSAMPLE sample, input_spl_sample, input_fft_sample, dummy_sample;
 
-	input_sample = buf_alloc(sample_size_callback);
-	dummy_sample = buf_alloc(dummy_size_callback);
-
-	if (argc < 3) {
-		printf("use: split <host> <port> <listen_port>\n");
+	if (argc < 5) {
+		printf("use: display <splitted_host> <splitted_port> <ffted_host> <ffted_port>\n");
 		return 0;
 	}
 
-	if (argc > 3) {
-		sscanf(argv[3], "%i", &listen_port);
-		printf("Will listen %i port\n", listen_port);
-	}
-
 	connection = pin_list_create(MAX_EVENTS);
-	pin_listen(connection, listen_port, BACKLOG);
-	input_pin = pin_connect(connection, argv[1], argv[2]);
+	input_spl_pin = pin_connect(connection, argv[1], argv[2]);
+	input_fft_pin = pin_connect(connection, argv[3], argv[4]);
 
-	if (!input_pin)
+	input_spl_sample = buf_alloc(sample_size_callback);
+	input_fft_sample = buf_alloc(sample_size_callback);
+	dummy_sample = buf_alloc(dummy_size_callback);
+
+	if (!input_spl_pin || !input_fft_pin)
 		active = 0;
 
 	if (active)
@@ -56,7 +48,11 @@ main(int argc, char *argv[])
 		/* loop for pins with active events */
 		while ( (pin = pin_list_get_next_event(connection, PIN_EVENT_READ)) != NULL ) {
 
-			sample = pin == input_pin ? input_sample : dummy_sample;
+			sample = (pin == input_spl_pin) ?
+						input_spl_sample :
+						( (pin == input_fft_pin) ?
+							input_fft_sample :
+							dummy_sample );
 
 			switch (pin_read_sample(pin, sample)) {
 				case PIN_STATUS_READY:
@@ -65,13 +61,7 @@ main(int argc, char *argv[])
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 
 					/* process data here */
-					do_process_data(sample, &processed_sample);
 
-					print_header((PSSAMPLEHEADER)processed_sample->buf,
-								processed_sample->buf + HEADER_SIZE,
-								processed_sample->size - HEADER_SIZE);
-
-					pin_list_write_sample(connection, processed_sample);
 					sample->size = 0;
 					break;
 				}

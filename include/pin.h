@@ -63,7 +63,7 @@ struct tagSPINLIST {
 };
 
 HPINLIST
-pin_list_create();
+pin_list_create(int events_count);
 
 void
 pin_list_destroy(HPINLIST pin_list);
@@ -71,7 +71,7 @@ pin_list_destroy(HPINLIST pin_list);
 
 /* bind addr and add into list */
 int
-pin_listen(HPINLIST pin_list, int port, int events_count, int backlog);
+pin_listen(HPINLIST pin_list, int port, int backlog);
 
 /* connect to addr and add into list */
 HPIN

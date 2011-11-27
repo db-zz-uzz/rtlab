@@ -2,31 +2,33 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="source" />
+		<Option title="display" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Option virtualFolders="headers/;shared/;" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/source" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Debug/display" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="127.0.0.1 5001" />
+				<Option parameters="127.0.0.1 16000 127.0.0.1 17000" />
 				<Compiler>
 					<Add option="-g" />
+					<Add directory="../include" />
 				</Compiler>
 			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="`pkg-config --cflags libpulse-simple`" />
 			<Add directory="../include" />
 		</Compiler>
 		<Linker>
-			<Add option="`pkg-config --libs libpulse-simple`" />
 			<Add option="-lxcrypt" />
 		</Linker>
+		<Unit filename="display.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../include/audio_sample.h">
 			<Option virtualFolder="headers/" />
 		</Unit>
@@ -51,15 +53,10 @@
 			<Option compilerVar="CC" />
 			<Option virtualFolder="shared/" />
 		</Unit>
-		<Unit filename="source.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Extensions>
-			<code_completion>
-				<search_path add="../include" />
-				<search_path add="/usr/include" />
-			</code_completion>
+			<code_completion />
 			<envvars />
+			<lib_finder disable_auto="1" />
 			<debugger />
 		</Extensions>
 	</Project>

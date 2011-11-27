@@ -64,8 +64,8 @@ main(int argc, char *argv[])
 		goto finish;
 	}
 
-	connection = pin_list_create();
-	pin_listen(connection, listen_port, MAX_EVENTS, BACKLOG);
+	connection = pin_list_create(MAX_EVENTS);
+	pin_listen(connection, listen_port, BACKLOG);
 
 	sample = buf_alloc(NULL);
 	buf_resize(sample, ss.channels * buffer_length * pa_sample_size(&ss) + HEADER_SIZE);
