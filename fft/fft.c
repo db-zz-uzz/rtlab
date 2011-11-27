@@ -100,7 +100,13 @@ main(int argc, char *argv[])
 				}
 				case PIN_STATUS_CLOSED:
 				{
-					printf("connection closed\n");
+					if (pin->type == PIN_TYPE_INPUT) {
+						printf("one of inputs closed. exit.\n");
+						active = 0;
+						continue;
+					} else {
+						printf("connection closed\n");
+					}
 					pin_disconnect(pin);
 					/* close data and skip iteration */
 					continue;

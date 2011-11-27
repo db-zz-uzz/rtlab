@@ -1,12 +1,10 @@
-
-#include "workers.h"
-#include "utils.h"
-
 #include <fftw3.h>
 #include <string.h>
 
+#include "buffer.h"
+
 int
-do_process_data(PSSAMPLE in_sample, PSSAMPLE *out_sample)
+do_process_data(HBUF in_sample, HBUF *out_sample)
 {
 	fftwf_complex *out_plane;
 	fftwf_plan p;

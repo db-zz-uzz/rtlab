@@ -98,7 +98,7 @@ pin_create()
 	return pin;
 }
 
-void
+static void
 pin_destroy(HPIN pin)
 {
 	PSBUFLISTENTRY buf_entry;
@@ -110,8 +110,11 @@ pin_destroy(HPIN pin)
 		buf_entry = pin->buf_list_head;
 		pin->buf_list_head = buf_entry->next;
 
-		if (buf_entry->buffer)
-			free(buf_entry->buffer);
+		if (buf_entry->buffer) {
+			buf_entry->buffer[0] -= 1;
+			if (buf_entry->buffer[0] == 0)
+				free(buf_entry->buffer);
+		}
 
 		free(buf_entry);
 	}
@@ -612,7 +615,7 @@ pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample)
 	uint8_t *buffer;
 	struct epoll_event ev;
 
-	int loop = 1;
+//	int loop = 1;
 
 	/* loop through output pins */
 	for (pin = pin_list->head; pin != NULL; pin = pin->next_pin) {
