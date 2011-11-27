@@ -7,7 +7,10 @@
 #include <errno.h>
 #include <string.h>
 
-#include "utils.h"
+#include "audio_sample.h"
+#include "buffer.h"
+#include "macros.h"
+#include "pin.h"
 
 #include <pulse/simple.h>
 #include <pulse/error.h>
@@ -15,24 +18,19 @@
 #include <pulse/timeval.h>
 
 #define MAX_EVENTS 5
+#define BACKLOG 50
 
-int
-do_read_fd(int fd, PSSAMPLE sample)
+static void
+sample_zero_buffer(HSAMPLE sample)
 {
-	/* read data here */
-
-	return SOCK_USE_CLOSE;
+	memset(sample->buf + HEADER_SIZE, 0, sample->alloced_size - HEADER_SIZE);
 }
-
 
 int
 main(int argc, char *argv[])
 {
-	int listen_sock, epollfd, nfds, n, error;
-	struct epoll_event ev, events[MAX_EVENTS];
-
-	struct fd_list_head fd_list = {0};
-	struct fd_list_entry *np = NULL;
+	uint8_t active = 1;
+	int error;
 
 	/* buffer length in samples. would be multiplied by channels and sample size */
 	int buffer_length = 11025;
@@ -46,9 +44,11 @@ main(int argc, char *argv[])
         .channels = 2
     };
 
-	SSAMPLEHEADER sh = {0};
-	SSAMPLE sample = {0};
-	sample.header = &sh;
+	HPINLIST connection = NULL;
+	HPIN pin;
+	HSAMPLE sample, dummy_sample;
+
+	PSSAMPLEHEADER  sample_header;
 
 	pa_simple *pa_context = NULL;
 
@@ -57,89 +57,96 @@ main(int argc, char *argv[])
 		printf("Will listen %i port\n", listen_port);
 	}
 
-	listen_sock = bind_addr(listen_port, 50);
-
 	if ( !(pa_context = pa_simple_new(NULL, argv[0],
-							PA_STREAM_RECORD, NULL, "record",
-							&ss, NULL, NULL, &error)) ) {
+			PA_STREAM_RECORD, NULL, "record",
+			&ss, NULL, NULL, &error)) ) {
 		fprintf(stderr, __FILE__": pa_simple_new() failed: %s\n", pa_strerror(error));
-        goto finish;
+		goto finish;
 	}
 
-	if ( (epollfd = epoll_create(MAX_EVENTS)) == -1 ) {
-		handle_error("epoll_create()");
-	}
+	connection = pin_list_create();
+	pin_listen(connection, listen_port, MAX_EVENTS, BACKLOG);
 
-	ev.events = EPOLLIN;
-	ev.data.fd = listen_sock;
-	if (epoll_ctl(epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
-		handle_error("epoll_ctl()");
-	}
+	sample = buf_alloc(NULL);
+	buf_resize(sample, ss.channels * buffer_length * pa_sample_size(&ss) + HEADER_SIZE);
+	sample->full_size = sample->size = sample->alloced_size;
+	sample_header = (PSSAMPLEHEADER)sample->buf;
 
-	sh.channels = ss.channels;
-	sh.sample_size = pa_sample_size(&ss);
-	sh.samples = buffer_length;
-	sh.buf_type = BUF_TYPE_INTERLEAVED;
+	sample_header->number = 0;
+	sample_header->buf_type = BUF_TYPE_INTERLEAVED;
+	sample_header->sample_size = pa_sample_size(&ss);
+	sample_header->samples = buffer_length;
+	sample_header->channels = ss.channels;
 
-	sample_alloc_buffer(&sample, buffer_length);
-	sample.write_func = do_write_fd;
-	sample.epollfd = epollfd;
+	dummy_sample = buf_alloc(dummy_size_callback);
 
-	LIST_INIT(&fd_list);
+	/**
+	 * :TODO: It's need to improve latency while sending buffers
+	 */
+	while (active && pin_list_wait(connection, 0) != PIN_ERROR) {
+		sample_zero_buffer(sample);
 
-	for (;;) {
-		sample_zero_buffer(&sample);
+		pin_list_deliver(connection);
 
-        if (pa_simple_read(pa_context, sample.buf, sample.buf_size, &error) < 0) {
+        if (pa_simple_read(pa_context, sample->buf + HEADER_SIZE,
+						sample->alloced_size - HEADER_SIZE, &error) < 0) {
             fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
             goto finish;
         }
-		pa_gettimeofday(&sh.timestamp);
-		sh.number++;
+		pa_gettimeofday(&(sample_header->timestamp));
+		sample_header->number += 1;
 
-		if ( (nfds = epoll_wait(epollfd, events, MAX_EVENTS, 0)) == -1 ) {
-			handle_error("epoll_pwait()");
-		}
+		while ( (pin = pin_list_get_next_event(connection, PIN_EVENT_READ)) != NULL ) {
 
-		/* handle connections */
-		for (n = 0; n < nfds; n++) {
-			if (events[n].data.fd == listen_sock) {
-				/* accept new connection */
-				make_connection(epollfd, &fd_list, events[n].data.fd);
-
-			} else {
-				/* use socket */
-				switch (do_read_fd(events[n].data.fd, &sample)) {
-					case SOCK_USE_CLOSE: {
-						close_connection(epollfd, &fd_list, events[n].data.fd, "point 1");
-						break;
+			switch (pin_read_sample(pin, dummy_sample)) {
+				case PIN_STATUS_READY:
+				{
+					break;
+				}
+				case PIN_STATUS_CLOSED:
+				{
+					if (pin->type == PIN_TYPE_INPUT) {
+						printf("one of inputs closed. exit.\n");
+						active = 0;
+						continue;
+					} else {
+						printf("connection closed\n");
 					}
-					case SOCK_USE_OK:
-					default: {
-						break;
-					}
+					pin_disconnect(pin);
+					/* close data and skip iteration */
+					continue;
+				}
+				case PIN_STATUS_PARTIAL:
+				{
+					printf(" partial data. %u / %u\n", sample->size, sample->full_size);
+					/* do nothing since no data ready */
+					break;
+				}
+				case PIN_STATUS_NO_DATA:
+				{
+					printf("      no data. %u / %u\n", sample->size, sample->full_size);
+					/* do nothing since no data ready */
+					break;
+				}
+				default:
+				{
+					break;
 				}
 			}
+
+			sample->size = 0;
 		}
 
-		print_md5(&sample);
-		deliver_data(&fd_list, &sample);
-	}
+		print_header((PSSAMPLEHEADER)sample->buf,
+					sample->buf + HEADER_SIZE,
+					sample->size - HEADER_SIZE);
 
-	sample_free_buffer(&sample);
+		pin_list_write_sample(connection, sample);
+	}
 
 finish:
 
-	while (fd_list.lh_first != NULL) {
-		np = fd_list.lh_first;
-		LIST_REMOVE(np, l);
-
-		epoll_ctl(epollfd, EPOLL_CTL_DEL, np->fd, NULL);
-		close(np->fd);
-
-		free(np);
-	}
-	close(listen_sock);
+	pin_list_destroy(connection);
 
 	pa_simple_free(pa_context);
 
