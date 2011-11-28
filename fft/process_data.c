@@ -5,7 +5,34 @@
 #include "buffer.h"
 
 static void
-data_f2c(void *dst, void *src, uint32_t siz)
+center_data_4b(void *buf, uint32_t siz)
+{
+	fftwf_complex *samples = buf;
+	float center = 0;
+	float min = samples[0][0];
+	float max = samples[0][0];
+	uint32_t i = 0;
+
+	for (i = 0; i < siz; i++) {
+		center += samples[i][0];
+
+		if (samples[i][0] < min)
+			min = samples[i][0];
+
+		if (samples[i][0] > max)
+			max = samples[i][0];
+	}
+	center /= siz;
+/*
+	for (i = 0; i < siz; i++) {
+
+	}
+*/
+	printf("%u samples, average %.4f, min %.4f, max %.4f\n", siz, center, min, max);
+}
+
+static void
+data_f2c_4b(void *dst, void *src, uint32_t siz)
 {
 	fftwf_complex *d = dst;
 	float *s = src;
@@ -59,9 +86,14 @@ do_process_data(HBUF in_sample, HBUF *out_sample, uint32_t user_data)
 
 	for(i = 0; i < out_header->channels; i++) {
 		// set input buffer
-		data_f2c(in_plane,
+		data_f2c_4b(in_plane,
 				in_data + i * in_header->sample_size * in_header->samples,
 				in_header->samples);
+
+		/* data centering doesn't necessary in case of real data */
+	/*
+		center_data_4b(in_plane, in_header->samples);
+	*/
 		fftwf_execute(p);
 		memcpy(out_data + i * plane_size, out_plane, plane_size);
 		(*out_sample)->size += plane_size;
