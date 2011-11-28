@@ -16,9 +16,13 @@
 /* internal functions */
 
 #define CONN_DOMAIN		AF_INET
-#define CONN_SOCKET		SOCK_STREAM
-/* tcp protocol */
-#define CONN_PROTO		"tcp"
+#if 1
+# define CONN_SOCKET	SOCK_STREAM
+# define CONN_PROTO		"tcp"
+#else
+# define CONN_PROTO		"udp"
+# define CONN_SOCKET 	SOCK_DGRAM
+#endif
 
 static int
 bind_addr(int port, int backlog)
