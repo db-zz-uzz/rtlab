@@ -21,24 +21,32 @@ main(int argc, char *argv[])
 
 	HPINLIST connection = NULL;
 	HPIN pin;
-	HPIN input_spl_pin, input_fft_pin;
-	HSAMPLE sample, input_spl_sample, input_fft_sample, dummy_sample;
+	HPIN input_l_pin, input_r_pin;
+	HSAMPLE sample, input_l_sample, input_r_sample, dummy_sample;
 
 	if (argc < 5) {
 		printf("use: display <splitted_host> <splitted_port> <ffted_host> <ffted_port>\n");
 		return 0;
 	}
 
-	connection = pin_list_create(MAX_EVENTS);
-	input_spl_pin = pin_connect(connection, argv[1], argv[2]);
-	input_fft_pin = pin_connect(connection, argv[3], argv[4]);
+	/* create pipe/queue, mutex */
 
-	input_spl_sample = buf_alloc(sample_size_callback);
-	input_fft_sample = buf_alloc(sample_size_callback);
+	/* spawn ui thread */
+
+	/* wait mutex unlocked (ui thread being inited) */
+
+	connection = pin_list_create(MAX_EVENTS);
+	input_l_pin = pin_connect(connection, argv[1], argv[2]);
+	input_r_pin = pin_connect(connection, argv[3], argv[4]);
+
+	input_l_sample = buf_alloc(sample_size_callback);
+	input_r_sample = buf_alloc(sample_size_callback);
 	dummy_sample = buf_alloc(dummy_size_callback);
 
-	if (!input_spl_pin || !input_fft_pin)
+	if (!input_l_pin || !input_r_pin) {
 		active = 0;
+		/* terminate/signal to exit ui thread */
+	}
 
 	if (active)
 		printf("Enter main loop\n");
@@ -48,10 +56,10 @@ main(int argc, char *argv[])
 		/* loop for pins with active events */
 		while ( (pin = pin_list_get_next_event(connection, PIN_EVENT_READ)) != NULL ) {
 
-			sample = (pin == input_spl_pin) ?
-						input_spl_sample :
-						( (pin == input_fft_pin) ?
-							input_fft_sample :
+			sample = (pin == input_l_pin) ?
+						input_l_sample :
+						( (pin == input_r_pin) ?
+							input_r_sample :
 							dummy_sample );
 
 			switch (pin_read_sample(pin, sample)) {
@@ -60,7 +68,7 @@ main(int argc, char *argv[])
 					PSSAMPLEHEADER header = (PSSAMPLEHEADER)sample->buf;
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 
-					/* process data here */
+					/* send data to ui here */
 
 					sample->size = 0;
 					break;
@@ -99,6 +107,8 @@ main(int argc, char *argv[])
 
 		pin_list_deliver(connection);
 	}
+
+	/* join ui thread */
 
 	pin_list_destroy(connection);
 

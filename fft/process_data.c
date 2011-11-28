@@ -16,7 +16,7 @@ data_f2c(void *dst, void *src, uint32_t siz)
 }
 
 int
-do_process_data(HBUF in_sample, HBUF *out_sample)
+do_process_data(HBUF in_sample, HBUF *out_sample, uint32_t user_data)
 {
 	fftwf_complex *out_plane, *in_plane;
 	fftwf_plan p;
@@ -51,6 +51,7 @@ do_process_data(HBUF in_sample, HBUF *out_sample)
 	out_header->number = in_header->number;
 	out_header->timestamp = in_header->timestamp;
 	out_header->channels = in_header->channels;
+	out_header->channel_no = in_header->channel_no;
 
 	(*out_sample)->size = HEADER_SIZE;
 

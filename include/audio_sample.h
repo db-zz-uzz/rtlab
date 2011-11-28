@@ -27,6 +27,8 @@ typedef struct tagSSAMPLEHEADER {
 	/* buffer type. interleaved or sequential */
 	uint8_t buf_type;
 
+	uint8_t channel_no;
+
 	/* media sample timestamp */
 	struct timeval timestamp;
 

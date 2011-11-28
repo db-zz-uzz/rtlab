@@ -28,6 +28,8 @@ typedef struct tagSBUFLISTENTRY SBUFLISTENTRY, *PSBUFLISTENTRY;
 typedef struct tagSPINLIST SPINLIST, *HPINLIST;
 typedef struct tagSPIN SPIN, *HPIN;
 
+typedef void (*pin_accept_callback_t)(HPIN, HPIN);
+
 struct tagSBUFLISTENTRY {
 	uint8_t *buffer;
 	uint32_t size;
@@ -42,10 +44,13 @@ struct tagSPIN {
 	struct sockaddr_in addr;
 
 	uint8_t type;
+	uint8_t user_flags;
 	SBUFLISTENTRY *buf_list_head;
 	SBUFLISTENTRY **buf_list_tail;
 	HPIN next_pin;
 	HPINLIST parent_list;
+
+	pin_accept_callback_t accept_callback;
 };
 
 struct tagSPINLIST {
@@ -62,6 +67,12 @@ struct tagSPINLIST {
 	int read_list_size;
 };
 
+uint8_t
+pin_get_flags(HPIN pin);
+
+void
+pin_set_flags(HPIN pin, uint8_t flags);
+
 HPINLIST
 pin_list_create(int events_count);
 
@@ -70,8 +81,8 @@ pin_list_destroy(HPINLIST pin_list);
 
 
 /* bind addr and add into list */
-int
-pin_listen(HPINLIST pin_list, int port, int backlog);
+HPIN
+pin_listen(HPINLIST pin_list, int port, int backlog, pin_accept_callback_t accept_callback);
 
 /* connect to addr and add into list */
 HPIN
@@ -105,6 +116,6 @@ int
 pin_read_sample(HPIN pin, HSAMPLE sample);
 
 int
-pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample);
+pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample, uint8_t restrict_pin);
 
 #endif // PIN_H_INCLUDED

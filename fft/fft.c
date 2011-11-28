@@ -42,7 +42,7 @@ main(int argc, char *argv[])
 	}
 
 	connection = pin_list_create(MAX_EVENTS);
-	pin_listen(connection, listen_port, BACKLOG);
+	pin_listen(connection, listen_port, BACKLOG, NULL);
 	input_pin = pin_connect(connection, argv[1], argv[2]);
 
 	if (!input_pin)
@@ -65,13 +65,13 @@ main(int argc, char *argv[])
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 
 					/* process data here */
-					do_process_data(sample, &processed_sample);
+					do_process_data(sample, &processed_sample, 0);
 
 					print_header((PSSAMPLEHEADER)processed_sample->buf,
 								processed_sample->buf + HEADER_SIZE,
 								processed_sample->size - HEADER_SIZE);
 
-					pin_list_write_sample(connection, processed_sample);
+					pin_list_write_sample(connection, processed_sample, 0);
 					sample->size = 0;
 					break;
 				}

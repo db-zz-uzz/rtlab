@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 	}
 
 	connection = pin_list_create(MAX_EVENTS);
-	pin_listen(connection, listen_port, BACKLOG);
+	pin_listen(connection, listen_port, BACKLOG, NULL);
 
 	sample = buf_alloc(NULL);
 	buf_resize(sample, ss.channels * buffer_length * pa_sample_size(&ss) + HEADER_SIZE);
@@ -141,7 +141,7 @@ main(int argc, char *argv[])
 					sample->buf + HEADER_SIZE,
 					sample->size - HEADER_SIZE);
 
-		pin_list_write_sample(connection, sample);
+		pin_list_write_sample(connection, sample, 0);
 	}
 
 finish:

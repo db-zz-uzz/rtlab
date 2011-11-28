@@ -271,15 +271,15 @@ pin_list_destroy(HPINLIST pin_list) {
 	free(pin_list);
 }
 
-int
-pin_listen(HPINLIST pin_list, int port, int backlog)
+HPIN
+pin_listen(HPINLIST pin_list, int port, int backlog, pin_accept_callback_t accept_callback)
 {
 	int listen_sock;
 	HPIN pin;
 	struct epoll_event ev;
 
 	if (!pin_list)
-		return PIN_ERROR;
+		return NULL;
 
 	listen_sock = bind_addr(port, backlog);
 
@@ -292,10 +292,11 @@ pin_listen(HPINLIST pin_list, int port, int backlog)
 	pin = pin_create();
 	pin->fd = listen_sock;
 	pin->type = PIN_TYPE_LISTEN;
+	pin->accept_callback = accept_callback;
 
 	pin_list_insert_pin(pin_list, pin);
 
-	return PIN_OK;
+	return pin;
 }
 
 HPIN
@@ -402,6 +403,10 @@ pin_list_wait(HPINLIST pin_list, int timeout)
 
 			if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_ADD, new_pin->fd, &ev) == -1) {
 				handle_error("epoll_ctl()");
+			}
+
+			if (pin->accept_callback) {
+				pin->accept_callback(pin, new_pin);
 			}
 
 			pin_list_insert_pin(pin_list, new_pin);
@@ -607,7 +612,7 @@ pin_read_sample(HPIN pin, HSAMPLE buffer)
 }
 
 int
-pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample)
+pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample, uint8_t restrict_pin)
 {
 	PSBUFLISTENTRY packet = NULL;
 	HPIN pin;
@@ -619,7 +624,8 @@ pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample)
 
 	/* loop through output pins */
 	for (pin = pin_list->head; pin != NULL; pin = pin->next_pin) {
-		if (pin->type == PIN_TYPE_OUTPUT) {
+		if (pin->type == PIN_TYPE_OUTPUT &&
+			((restrict_pin == 0) || (pin->user_flags == restrict_pin)) ) {
 			if (inited == 0) {
 				buffer = malloc(sample->size + 1);
 				memcpy(buffer + 1, sample->buf, sample->size);
@@ -649,12 +655,22 @@ pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample)
 	return PIN_OK;
 }
 
+uint8_t
+pin_get_flags(HPIN pin)
+{
+	if (pin) {
+		return pin->user_flags;
+	}
 
+	return 0;
+}
 
-
-
-
-
-
+void
+pin_set_flags(HPIN pin, uint8_t flags)
+{
+	if (pin) {
+		pin->user_flags = flags;
+	}
+}
 
 

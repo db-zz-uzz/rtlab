@@ -16,33 +16,55 @@
 #define MAX_EVENTS 5
 #define BACKLOG 50
 
+#define PIN_OUT_LEFT	0x01
+#define PIN_OUT_RIGHT	0x02
+
+#define CHANNEL_LEFT	0
+#define CHANNEL_RIGHT	1
+
+void
+split_accepct_callback(HPIN parent_pin, HPIN new_pin)
+{
+	pin_set_flags(new_pin, pin_get_flags(parent_pin));
+}
+
 int
 main(int argc, char *argv[])
 {
 	uint8_t active = 1;
 
-	int listen_port = 15020;
+	int listen_left_port = 15020;
+	int listen_right_port = 15021;
 
 	HPINLIST connection = NULL;
 	HPIN pin;
-	HPIN input_pin;
-	HSAMPLE sample, input_sample, dummy_sample, processed_sample = NULL;
+	HPIN input_pin, listen_left_pin, listen_right_pin;
+	HSAMPLE sample, input_sample, dummy_sample;
+	HSAMPLE processed_left_sample = NULL;
+	HSAMPLE processed_right_sample = NULL;
 
 	input_sample = buf_alloc(sample_size_callback);
 	dummy_sample = buf_alloc(dummy_size_callback);
 
-	if (argc < 3) {
-		printf("use: split <host> <port> <listen_port>\n");
+	if (argc < 3 || argc == 4) {
+		printf("use: split <host> <port> <listen_left_port> <listen_right_port>\n");
 		return 0;
 	}
 
 	if (argc > 3) {
-		sscanf(argv[3], "%i", &listen_port);
-		printf("Will listen %i port\n", listen_port);
+		sscanf(argv[3], "%i", &listen_left_port);
+		sscanf(argv[4], "%i", &listen_right_port);
+		printf("Will listen: left on %i, right on %i port\n", listen_left_port, listen_right_port);
 	}
 
 	connection = pin_list_create(MAX_EVENTS);
-	pin_listen(connection, listen_port, BACKLOG);
+
+	listen_left_pin = pin_listen(connection, listen_left_port, BACKLOG, split_accepct_callback);
+	pin_set_flags(listen_left_pin, PIN_OUT_LEFT);
+
+	listen_right_pin = pin_listen(connection, listen_right_port, BACKLOG, split_accepct_callback);
+	pin_set_flags(listen_right_pin, PIN_OUT_RIGHT);
+
 	input_pin = pin_connect(connection, argv[1], argv[2]);
 
 	if (!input_pin)
@@ -65,13 +87,19 @@ main(int argc, char *argv[])
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 
 					/* process data here */
-					do_process_data(sample, &processed_sample);
+					do_process_data(sample, &processed_left_sample, CHANNEL_LEFT);
+					do_process_data(sample, &processed_right_sample, CHANNEL_RIGHT);
 
-					print_header((PSSAMPLEHEADER)processed_sample->buf,
-								processed_sample->buf + HEADER_SIZE,
-								processed_sample->size - HEADER_SIZE);
+					print_header((PSSAMPLEHEADER)processed_left_sample->buf,
+								processed_left_sample->buf + HEADER_SIZE,
+								processed_left_sample->size - HEADER_SIZE);
 
-					pin_list_write_sample(connection, processed_sample);
+					print_header((PSSAMPLEHEADER)processed_right_sample->buf,
+								processed_right_sample->buf + HEADER_SIZE,
+								processed_right_sample->size - HEADER_SIZE);
+
+					pin_list_write_sample(connection, processed_left_sample, PIN_OUT_LEFT);
+					pin_list_write_sample(connection, processed_right_sample, PIN_OUT_RIGHT);
 					sample->size = 0;
 					break;
 				}

@@ -28,10 +28,11 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 
 	md5_buffer((char *)buf, data_size, (void *)res);
 
-	printf("[%6u] %ld.%06ld  %u/%u/%u (%s)  ",
+	printf("[%6u] %ld.%06ld  %u(%u)/%u/%u (%s)  ",
 			header->number,
 			header->timestamp.tv_sec,
 			header->timestamp.tv_usec,
+			header->channel_no,
 			header->channels,
 			header->sample_size,
 			header->samples,
