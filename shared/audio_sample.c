@@ -23,10 +23,12 @@ buf_type_letter(enum E_BUFFER_TYPE buf_type)
 void
 print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 {
+#ifdef PRINT_MD5
 	uint8_t i;
 	uint8_t res[16];
 
 	md5_buffer((char *)buf, data_size, (void *)res);
+#endif
 
 	printf("[%6u] %ld.%06ld  %u(%u)/%u/%u (%s)  ",
 			header->number,
@@ -38,9 +40,12 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 			header->samples,
 			buf_type_letter(header->buf_type));
 
+#ifdef PRINT_MD5
 	for (i = 0; i < 16; i++) {
 		printf("%02x", res[i]);
 	}
+#endif
+
 	printf("  %u/%u B\n", BUF_SIZE(header), data_size);
 
 	return;
