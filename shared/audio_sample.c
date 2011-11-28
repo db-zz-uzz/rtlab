@@ -2,6 +2,8 @@
 
 #include "audio_sample.h"
 
+/* #define PRINT_MD5 */
+
 static char *
 buf_type_letter(enum E_BUFFER_TYPE buf_type)
 {
