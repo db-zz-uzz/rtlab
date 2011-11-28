@@ -79,6 +79,8 @@ pin_list_create(int events_count);
 void
 pin_list_destroy(HPINLIST pin_list);
 
+HPIN
+pin_list_add_custom_fd(HPINLIST pin_list, int fd, uint32_t pin_type);
 
 /* bind addr and add into list */
 HPIN

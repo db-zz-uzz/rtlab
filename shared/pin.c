@@ -271,27 +271,24 @@ pin_list_destroy(HPINLIST pin_list) {
 	free(pin_list);
 }
 
-HPIN
-pin_listen(HPINLIST pin_list, int port, int backlog, pin_accept_callback_t accept_callback)
+static HPIN
+pin_list_add_custom_fd_ex(HPINLIST pin_list, int fd, uint32_t pin_type, pin_accept_callback_t accept_callback)
 {
-	int listen_sock;
 	HPIN pin;
 	struct epoll_event ev;
 
 	if (!pin_list)
 		return NULL;
 
-	listen_sock = bind_addr(port, backlog);
-
-	ev.events = EPOLLIN;
-	ev.data.fd = listen_sock;
-	if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_ADD, listen_sock, &ev) == -1) {
+	ev.events = EPOLLIN | EPOLLET;
+	ev.data.fd = fd;
+	if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
 		handle_error("epoll_ctl()");
 	}
 
 	pin = pin_create();
-	pin->fd = listen_sock;
-	pin->type = PIN_TYPE_LISTEN;
+	pin->fd = fd;
+	pin->type = pin_type;
 	pin->accept_callback = accept_callback;
 
 	pin_list_insert_pin(pin_list, pin);
@@ -300,11 +297,28 @@ pin_listen(HPINLIST pin_list, int port, int backlog, pin_accept_callback_t accep
 }
 
 HPIN
+pin_list_add_custom_fd(HPINLIST pin_list, int fd, uint32_t pin_type)
+{
+	return pin_list_add_custom_fd_ex(pin_list, fd, pin_type, NULL);
+}
+
+HPIN
+pin_listen(HPINLIST pin_list, int port, int backlog, pin_accept_callback_t accept_callback)
+{
+	int listen_sock;
+
+	if (!pin_list)
+		return NULL;
+
+	listen_sock = bind_addr(port, backlog);
+
+	return pin_list_add_custom_fd_ex(pin_list, listen_sock, PIN_TYPE_LISTEN, accept_callback);
+}
+
+HPIN
 pin_connect(HPINLIST pin_list, char *addr, char *port)
 {
 	int source_sock;
-	HPIN pin;
-	struct epoll_event ev;
 
 	if (!pin_list || !addr || !port) {
 		return NULL;
@@ -316,19 +330,7 @@ pin_connect(HPINLIST pin_list, char *addr, char *port)
 		return NULL;
 	}
 
-	ev.events = EPOLLIN | EPOLLET;
-	ev.data.fd = source_sock;
-	if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_ADD, source_sock, &ev) == -1) {
-		handle_error("epoll_ctl()");
-	}
-
-	pin = pin_create();
-	pin->fd = source_sock;
-	pin->type = PIN_TYPE_INPUT;
-
-	pin_list_insert_pin(pin_list, pin);
-
-	return pin;
+	return pin_list_add_custom_fd_ex(pin_list, source_sock, PIN_TYPE_INPUT, NULL);
 }
 
 int
@@ -386,30 +388,26 @@ pin_list_wait(HPINLIST pin_list, int timeout)
 		if (pin->type == PIN_TYPE_LISTEN) {
 			/* accept new connection */
 			/* :BUG: need to check max connections count */
-			struct epoll_event ev;
-			HPIN new_pin = pin_create();
+
+			HPIN new_pin;
+			int fd;
+			struct sockaddr_in addr;
 			socklen_t addrlen = sizeof(new_pin->addr);
 
-			if ( (new_pin->fd = accept(events[i].data.fd,
-										(struct sockaddr *)&new_pin->addr,
+			if ( (fd = accept(events[i].data.fd,
+										(struct sockaddr *)&addr,
 										&addrlen)) == -1 ) {
 				handle_error("accept()");
 			}
-			new_pin->type = PIN_TYPE_OUTPUT;
-			setnonblocking(new_pin->fd);
 
-			ev.events = EPOLLIN | EPOLLET;
-			ev.data.fd = new_pin->fd;
+			setnonblocking(fd);
 
-			if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_ADD, new_pin->fd, &ev) == -1) {
-				handle_error("epoll_ctl()");
-			}
+			new_pin = pin_list_add_custom_fd_ex(pin_list, fd, PIN_TYPE_OUTPUT, NULL);
+			new_pin->addr = addr;
 
 			if (pin->accept_callback) {
 				pin->accept_callback(pin, new_pin);
 			}
-
-			pin_list_insert_pin(pin_list, new_pin);
 
 			printf("new connection: %s:%u\n",
 		 			inet_ntoa(new_pin->addr.sin_addr),
