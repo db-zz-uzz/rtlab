@@ -284,7 +284,7 @@ pin_list_add_custom_fd_ex(HPINLIST pin_list, int fd, uint32_t pin_type, pin_acce
 	if (!pin_list)
 		return NULL;
 
-	ev.events = EPOLLIN | EPOLLET;
+	ev.events = EPOLLIN;// | EPOLLET;
 	ev.data.fd = fd;
 	if (epoll_ctl(pin_list->epollfd, EPOLL_CTL_ADD, fd, &ev) == -1) {
 		handle_error("epoll_ctl()");
