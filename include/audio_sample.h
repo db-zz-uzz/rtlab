@@ -8,6 +8,9 @@
 #define HEADER_SIZE sizeof(SSAMPLEHEADER)
 #define BUF_SIZE(header) 	((header)->channels * (header)->sample_size * (header)->samples)
 
+#define CHANNEL_LEFT	0
+#define CHANNEL_RIGHT	1
+
 enum E_SOCK_USE {
 	SOCK_USE_OK 	= 0,
 	SOCK_USE_CLOSE 	= 1,

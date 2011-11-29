@@ -12,6 +12,7 @@
 #include "buffer.h"
 #include "pin.h"
 #include "process_data.h"
+#include "timing.h"
 
 #define MAX_EVENTS 5
 #define BACKLOG 50
@@ -26,7 +27,9 @@ main(int argc, char *argv[])
 	HPINLIST connection = NULL;
 	HPIN pin;
 	HPIN input_pin;
-	HSAMPLE sample, input_sample, dummy_sample, processed_sample = NULL;
+	HBUF sample, input_sample, dummy_sample, processed_sample = NULL;
+
+	TIMING_MEASURE_AREA;
 
 	input_sample = buf_alloc(sample_size_callback);
 	dummy_sample = buf_alloc(dummy_size_callback);
@@ -62,6 +65,9 @@ main(int argc, char *argv[])
 				case PIN_STATUS_READY:
 				{
 					PSSAMPLEHEADER header = (PSSAMPLEHEADER)sample->buf;
+
+					TIMING_START;
+
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 
 					/* process data here */
@@ -73,6 +79,8 @@ main(int argc, char *argv[])
 
 					pin_list_write_sample(connection, processed_sample, 0);
 					sample->size = 0;
+
+					TIMING_END("fft");
 					break;
 				}
 				case PIN_STATUS_CLOSED:

@@ -12,15 +12,13 @@
 #include "buffer.h"
 #include "pin.h"
 #include "process_data.h"
+#include "timing.h"
 
 #define MAX_EVENTS 5
 #define BACKLOG 50
 
 #define PIN_OUT_LEFT	0x01
 #define PIN_OUT_RIGHT	0x02
-
-#define CHANNEL_LEFT	0
-#define CHANNEL_RIGHT	1
 
 void
 split_accepct_callback(HPIN parent_pin, HPIN new_pin)
@@ -39,9 +37,11 @@ main(int argc, char *argv[])
 	HPINLIST connection = NULL;
 	HPIN pin;
 	HPIN input_pin, listen_left_pin, listen_right_pin;
-	HSAMPLE sample, input_sample, dummy_sample;
-	HSAMPLE processed_left_sample = NULL;
-	HSAMPLE processed_right_sample = NULL;
+	HBUF sample, input_sample, dummy_sample;
+	HBUF processed_left_sample = NULL;
+	HBUF processed_right_sample = NULL;
+
+	TIMING_MEASURE_AREA;
 
 	input_sample = buf_alloc(sample_size_callback);
 	dummy_sample = buf_alloc(dummy_size_callback);
@@ -83,6 +83,8 @@ main(int argc, char *argv[])
 			switch (pin_read_sample(pin, sample)) {
 				case PIN_STATUS_READY:
 				{
+					TIMING_START;
+
 					PSSAMPLEHEADER header = (PSSAMPLEHEADER)sample->buf;
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 
@@ -101,6 +103,8 @@ main(int argc, char *argv[])
 					pin_list_write_sample(connection, processed_left_sample, PIN_OUT_LEFT);
 					pin_list_write_sample(connection, processed_right_sample, PIN_OUT_RIGHT);
 					sample->size = 0;
+
+					TIMING_END("split");
 					break;
 				}
 				case PIN_STATUS_CLOSED:

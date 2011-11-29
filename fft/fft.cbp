@@ -49,6 +49,9 @@
 		<Unit filename="../include/process_data.h">
 			<Option virtualFolder="headers/" />
 		</Unit>
+		<Unit filename="../include/timing.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
 		<Unit filename="../shared/audio_sample.c">
 			<Option compilerVar="CC" />
 			<Option virtualFolder="shared/" />

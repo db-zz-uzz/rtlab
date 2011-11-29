@@ -13,6 +13,7 @@
 #include "buffer.h"
 #include "macros.h"
 #include "pin.h"
+#include "timing.h"
 
 #include <pulse/simple.h>
 #include <pulse/error.h>
@@ -22,18 +23,17 @@
 #define MAX_EVENTS 5
 #define BACKLOG 50
 
-#define MESSAGE_END (void *)-1
-
 typedef struct tagSAUDIORECTHRPARAMS {
 	int argc;
 	char **argv;
 	pa_sample_spec *sample_spec;
 	int pipefd;
 	int buffer_size;
+	uint8_t active;
 } SAUDIORECTHRPARAMS, *PSAUDIORECTHRPARAMS;
 
 static void
-sample_zero_buffer(HSAMPLE sample)
+sample_zero_buffer(HBUF sample)
 {
 	memset(sample->buf + HEADER_SIZE, 0, sample->alloced_size - HEADER_SIZE);
 }
@@ -48,7 +48,9 @@ audio_capture_thr(void *args)
 	uint32_t buffer_size;
 
 	SSAMPLEHEADER  sample_header = {0};
-	HSAMPLE sample;
+	HBUF sample;
+
+	TIMING_MEASURE_AREA;
 
 	buffer_size = HEADER_SIZE + params->sample_spec->channels *
 					params->buffer_size * pa_sample_size(params->sample_spec);
@@ -69,12 +71,13 @@ audio_capture_thr(void *args)
 	printf("[source] audio thr\n");
 
 	while (active) {
+		TIMING_START;
+
 		sample = buf_alloc(NULL);
 		buf_resize(sample, buffer_size);
 		sample->full_size = sample->size = sample->alloced_size;
-		memcpy(sample->buf, &sample_header, sizeof(SSAMPLEHEADER));
-
 		sample_zero_buffer(sample);
+		memcpy(sample->buf, &sample_header, sizeof(SSAMPLEHEADER));
 
         if (pa_simple_read(pa_context, sample->buf + HEADER_SIZE,
 						sample->alloced_size - HEADER_SIZE, &error) < 0) {
@@ -84,7 +87,7 @@ audio_capture_thr(void *args)
 		pa_gettimeofday(&(sample_header.timestamp));
 		sample_header.number += 1;
 
-		printf("[audio] read %p\n", sample);
+		/* printf("[audio] read %p\n", sample); */
 
 		if ( (error = write(params->pipefd, &sample, sizeof(sample))) != sizeof(sample)) {
 			if (error == -1) {
@@ -93,8 +96,12 @@ audio_capture_thr(void *args)
 
 			buf_free(sample);
 			perror("[audio] ");
-			printf("[audio] free buffer");
+			printf("[audio] uverrun. free buffer\n");
 		}
+
+		active = params->active;
+
+		TIMING_END("audio");
 	}
 
 audio_thr_finish:
@@ -112,8 +119,9 @@ main(int argc, char *argv[])
 	int pipefd[2];
 
 	/* buffer length in samples. would be multiplied by channels and sample size */
-	int buffer_length = 9192;
+	int buffer_length = 4096;
 	int listen_port = 5002;
+	uint32_t counter = 0;
 
 	pthread_t audio_thr;
 /*	pthread_attr_t audio_thr_attr; */
@@ -129,7 +137,9 @@ main(int argc, char *argv[])
 	SAUDIORECTHRPARAMS audio_thr_params = {0};
 	HPINLIST connection = NULL;
 	HPIN pin, pipe_pin;
-	HSAMPLE sample, dummy_sample;
+	HBUF sample, dummy_sample;
+
+	TIMING_MEASURE_AREA;
 
 	if (argc > 1) {
 		sscanf(argv[1], "%i", &listen_port);
@@ -155,6 +165,7 @@ main(int argc, char *argv[])
 	audio_thr_params.sample_spec = &ss;
 	audio_thr_params.argc = argc;
 	audio_thr_params.argv = argv;
+	audio_thr_params.active = 1;
 
 #if 0
 	if ( (error = pthread_attr_init(&audio_thr_attr)) != 0 )
@@ -170,27 +181,31 @@ main(int argc, char *argv[])
 	/**
 	 * :TODO: It's need to improve latency while sending buffers
 	 */
-	while (active && pin_list_wait(connection, 0) != PIN_ERROR) {
+	while (active && pin_list_wait(connection, -1) != PIN_ERROR) {
 
 		pin_list_deliver(connection);
 
 		while ( (pin = pin_list_get_next_event(connection, PIN_EVENT_READ)) != NULL ) {
 
 			if (pin == pipe_pin) {
-				pin_read_raw(pin, &sample, sizeof(void *));
+				TIMING_START;
+				counter = 0;
+				while (	pin_read_raw(pin, &sample, PTR_SIZE) != 0 ) {
+					/* if pin = pipe_pin, read pointer to buffer,
+						write buffer into socket and free it */
+					/* printf("[source] read %p\n", sample); */
 
-				/* if pin = pipe_pin, read pointer to buffer,
-					write buffer into socket and free it */
-				printf("[source] read %p\n", sample);
+					print_header((PSSAMPLEHEADER)sample->buf,
+								sample->buf + HEADER_SIZE,
+								sample->size - HEADER_SIZE);
 
-				print_header((PSSAMPLEHEADER)sample->buf,
-							sample->buf + HEADER_SIZE,
-							sample->size - HEADER_SIZE);
+					pin_list_write_sample(connection, sample, 0);
 
-				pin_list_write_sample(connection, sample, 0);
-
-				buf_free(sample);
-
+					buf_free(sample);
+					counter++;
+				}
+				printf("[source] %u samples\n", counter);
+				TIMING_END("source");
 				continue;
 			}
 
@@ -241,6 +256,7 @@ main(int argc, char *argv[])
 		loop until pipe_pin is null.
 		and free recieved buffers.
 	*/
+	audio_thr_params.active = 0;
 	pthread_join(audio_thr, NULL);
 
 	pin_list_destroy(connection);

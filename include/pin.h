@@ -114,6 +114,9 @@ pin_list_wait(HPINLIST pin_list, int timeout);
 HPIN
 pin_list_get_next_event(HPINLIST pin_list, uint16_t event_type);
 
+uint8_t
+pin_list_pending_events(HPINLIST pin_list, uint16_t event_type);
+
 /* write all delayed buffers */
 int
 pin_list_deliver(HPINLIST pin_list);
@@ -122,9 +125,9 @@ int
 pin_read_raw(HPIN pin, void *dst, int siz);
 
 int
-pin_read_sample(HPIN pin, HSAMPLE sample);
+pin_read_sample(HPIN pin, HBUF sample);
 
 int
-pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample, uint8_t restrict_pin);
+pin_list_write_sample(HPINLIST pin_list, HBUF sample, uint8_t restrict_pin);
 
 #endif // PIN_H_INCLUDED

@@ -469,6 +469,22 @@ pin_list_get_next_event(HPINLIST pin_list, uint16_t event_type)
 	return pin;
 }
 
+uint8_t
+pin_list_pending_events(HPINLIST pin_list, uint16_t event_type)
+{
+	switch (event_type) {
+		case PIN_EVENT_READ: {
+			return pin_list->read_list_size;
+		}
+		case PIN_EVENT_WRITE: {
+			return pin_list->write_list_size;
+		}
+		default: {
+			return 0;
+		}
+	}
+}
+
 int
 pin_list_deliver(HPINLIST pin_list)
 {
@@ -554,7 +570,10 @@ pin_read_raw(HPIN pin, void *dst, int siz)
 	int ret;
 
 	if ( (ret = read(pin->fd, dst, siz)) == -1 ) {
-		handle_error("pipe recv()");
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+			handle_error("pipe recv()");
+
+		ret = 0;
 	}
 
 	if (ret < siz && ret > 0) {
@@ -566,7 +585,7 @@ pin_read_raw(HPIN pin, void *dst, int siz)
 }
 
 int
-pin_read_sample(HPIN pin, HSAMPLE buffer)
+pin_read_sample(HPIN pin, HBUF buffer)
 {
 	int res = PIN_STATUS_NO_DATA;
 	int ret;
@@ -630,7 +649,7 @@ pin_read_sample(HPIN pin, HSAMPLE buffer)
 }
 
 int
-pin_list_write_sample(HPINLIST pin_list, HSAMPLE sample, uint8_t restrict_pin)
+pin_list_write_sample(HPINLIST pin_list, HBUF sample, uint8_t restrict_pin)
 {
 	PSBUFLISTENTRY packet = NULL;
 	HPIN pin;

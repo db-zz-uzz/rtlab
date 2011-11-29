@@ -12,7 +12,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="127.0.0.1 16000 127.0.0.1 17000" />
+				<Option parameters="127.0.0.1 17000 127.0.0.1 17001" />
 				<Compiler>
 					<Add option="-g" />
 					<Add directory="../include" />
@@ -24,9 +24,16 @@
 			<Add directory="../include" />
 		</Compiler>
 		<Linker>
-			<Add option="-lxcrypt" />
+			<Add option="-lxcrypt -lpthread" />
 		</Linker>
 		<Unit filename="display.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="display.h" />
+		<Unit filename="metabuf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="reorderer.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../include/audio_sample.h">
@@ -39,6 +46,9 @@
 			<Option virtualFolder="headers/" />
 		</Unit>
 		<Unit filename="../include/pin.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../include/timing.h">
 			<Option virtualFolder="headers/" />
 		</Unit>
 		<Unit filename="../shared/audio_sample.c">

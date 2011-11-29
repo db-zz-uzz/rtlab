@@ -13,7 +13,6 @@
 
 #define BUF_READ_POINT(pbuffer) ((pbuffer)->buf + (pbuffer)->size)
 
-#define HSAMPLE HBUF
 typedef struct tagSBUF SBUF, *HBUF;
 
 typedef uint32_t (*buf_size_callback)(HBUF buf, uint8_t type);
