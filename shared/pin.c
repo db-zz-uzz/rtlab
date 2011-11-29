@@ -188,7 +188,7 @@ pin_list_attach_event(HPIN *pin_ptr, int *size, HPIN pin)
 	return;
 }
 
-static void
+void
 setnonblocking(int sock)
 {
 	int opts;
@@ -548,6 +548,22 @@ pin_list_deliver(HPINLIST pin_list)
 	return PIN_OK;
 }
 
+int
+pin_read_raw(HPIN pin, void *dst, int siz)
+{
+	int ret;
+
+	if ( (ret = read(pin->fd, dst, siz)) == -1 ) {
+		handle_error("pipe recv()");
+	}
+
+	if (ret < siz && ret > 0) {
+		fprintf(stderr, "pipe recv() underrun.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	return ret;
+}
 
 int
 pin_read_sample(HPIN pin, HSAMPLE buffer)

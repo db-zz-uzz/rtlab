@@ -10,6 +10,7 @@
 #define PIN_TYPE_INPUT		0x01
 #define PIN_TYPE_OUTPUT		0x02
 #define PIN_TYPE_LISTEN		0x04
+#define PIN_TYPE_CUSTOM		0x08
 
 #define PIN_EVENT_READ		0x01
 #define PIN_EVENT_WRITE		0x02
@@ -67,6 +68,9 @@ struct tagSPINLIST {
 	int read_list_size;
 };
 
+void
+setnonblocking(int sock);
+
 uint8_t
 pin_get_flags(HPIN pin);
 
@@ -113,6 +117,9 @@ pin_list_get_next_event(HPINLIST pin_list, uint16_t event_type);
 /* write all delayed buffers */
 int
 pin_list_deliver(HPINLIST pin_list);
+
+int
+pin_read_raw(HPIN pin, void *dst, int siz);
 
 int
 pin_read_sample(HPIN pin, HSAMPLE sample);
