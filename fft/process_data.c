@@ -4,6 +4,7 @@
 #include "audio_sample.h"
 #include "buffer.h"
 
+#if 0
 static void
 center_data_4b(void *buf, uint32_t siz)
 {
@@ -30,6 +31,7 @@ center_data_4b(void *buf, uint32_t siz)
 */
 	printf("%u samples, average %.4f, min %.4f, max %.4f\n", siz, center, min, max);
 }
+#endif
 
 static void
 data_f2c_4b(void *dst, void *src, uint32_t siz)
@@ -72,13 +74,9 @@ do_process_data(HBUF in_sample, HBUF *out_sample, uint32_t user_data)
 	out_header = (PSSAMPLEHEADER)(*out_sample)->buf;
 	out_data = (*out_sample)->buf + HEADER_SIZE;
 
+	memcpy(out_header, in_header, HEADER_SIZE);
 	out_header->sample_size = sizeof(fftwf_complex);
-	out_header->samples = in_header->samples;
 	out_header->buf_type = BUF_TYPE_FFTED;
-	out_header->number = in_header->number;
-	out_header->timestamp = in_header->timestamp;
-	out_header->channels = in_header->channels;
-	out_header->channel_no = in_header->channel_no;
 
 	(*out_sample)->size = HEADER_SIZE;
 

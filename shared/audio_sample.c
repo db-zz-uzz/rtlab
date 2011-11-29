@@ -3,7 +3,9 @@
 #include "audio_sample.h"
 
 #define PRINT_MD5
+#define PRINT_LIGHT
 
+#ifndef PRINT_LIGHT
 static char *
 buf_type_letter(enum E_BUFFER_TYPE buf_type)
 {
@@ -21,6 +23,20 @@ buf_type_letter(enum E_BUFFER_TYPE buf_type)
 			return "U";
 	}
 }
+#endif
+
+#ifdef PRINT_LIGHT
+void
+print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
+{
+	printf("[%6u] %ld.%06ld\n",
+			header->number,
+			header->timestamp.tv_sec,
+			header->timestamp.tv_usec);
+	return;
+}
+
+#else
 
 void
 print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
@@ -32,7 +48,7 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 	md5_buffer((char *)buf, data_size, (void *)res);
 #endif
 
-	printf("[%6u] %ld.%06ld  %u(%u)/%u/%u (%s)  ",
+	printf("[%6u] %ld.%06ld  %u(%u)/%u/%u/%u (%s)  ",
 			header->number,
 			header->timestamp.tv_sec,
 			header->timestamp.tv_usec,
@@ -40,6 +56,7 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 			header->channels,
 			header->sample_size,
 			header->samples,
+			header->samplerate,
 			buf_type_letter(header->buf_type));
 
 #ifdef PRINT_MD5
@@ -52,6 +69,7 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 
 	return;
 }
+#endif
 
 uint32_t
 sample_size_callback(HBUF buf, uint8_t type)

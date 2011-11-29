@@ -38,8 +38,9 @@ typedef struct tagSSAMPLEHEADER {
 	uint32_t number;
 	/* sample count in buffer */
 	uint32_t samples;
+	uint32_t samplerate;
 
-	uint8_t reserved[32 - sizeof(struct timeval) - 4 - 8];
+	uint8_t reserved[32 - sizeof(struct timeval) - 4 - 12];
 } SSAMPLEHEADER, *PSSAMPLEHEADER;
 
 void

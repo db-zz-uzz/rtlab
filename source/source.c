@@ -60,6 +60,7 @@ audio_capture_thr(void *args)
 	sample_header.sample_size = pa_sample_size(params->sample_spec);
 	sample_header.samples = params->buffer_size;
 	sample_header.channels = params->sample_spec->channels;
+	sample_header.samplerate = params->sample_spec->rate;
 
 	if ( !(pa_context = pa_simple_new(NULL, params->argv[0],
 			PA_STREAM_RECORD, NULL, "record",
@@ -119,7 +120,7 @@ main(int argc, char *argv[])
 	int pipefd[2];
 
 	/* buffer length in samples. would be multiplied by channels and sample size */
-	int buffer_length = 4096;
+	int buffer_length = 1024;
 	int listen_port = 5002;
 	uint32_t counter = 0;
 
@@ -130,7 +131,7 @@ main(int argc, char *argv[])
     pa_sample_spec ss = {
     	/* for fft need PA_SAMPLE_FLOAT32LE or PA_SAMPLE_FLOAT32BE */
         .format = PA_SAMPLE_FLOAT32LE, // PA_SAMPLE_S16LE,
-        .rate = 11025,
+        .rate = 44100,
         .channels = 2
     };
 
