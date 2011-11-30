@@ -66,7 +66,7 @@ main(int argc, char *argv[])
 				{
 					PSSAMPLEHEADER header = (PSSAMPLEHEADER)sample->buf;
 
-					TIMING_START;
+					TIMING_START();
 
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 

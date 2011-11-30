@@ -100,6 +100,7 @@ do_process_data(HBUF in_sample, HBUF *out_sample, uint32_t user_data)
 
 	fftwf_destroy_plan(p);
 	fftwf_free(out_plane);
+	fftwf_free(in_plane);
 
 	return 0;
 }
