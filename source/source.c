@@ -72,7 +72,7 @@ audio_capture_thr(void *args)
 	printf("[source] audio thr\n");
 
 	while (active) {
-		TIMING_START;
+		TIMING_START();
 
 		sample = buf_alloc(NULL);
 		buf_resize(sample, buffer_size);
@@ -131,7 +131,7 @@ main(int argc, char *argv[])
     pa_sample_spec ss = {
     	/* for fft need PA_SAMPLE_FLOAT32LE or PA_SAMPLE_FLOAT32BE */
         .format = PA_SAMPLE_FLOAT32LE, // PA_SAMPLE_S16LE,
-        .rate = 44100,
+        .rate = 11025,
         .channels = 2
     };
 
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
 		while ( (pin = pin_list_get_next_event(connection, PIN_EVENT_READ)) != NULL ) {
 
 			if (pin == pipe_pin) {
-				TIMING_START;
+				TIMING_START();
 				counter = 0;
 				while (	pin_read_raw(pin, &sample, PTR_SIZE) != 0 ) {
 					/* if pin = pipe_pin, read pointer to buffer,

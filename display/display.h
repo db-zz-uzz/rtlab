@@ -13,6 +13,8 @@
 typedef struct tagSMETABUFER {
 	HBUF left;
 	HBUF right;
+	HBUF left_fft;
+	HBUF right_fft;
 	HBUF sd_log;
 	HBUF sd_mod;
 	uint64_t timestamp;
@@ -20,6 +22,8 @@ typedef struct tagSMETABUFER {
 } SMETABUFER, *PSMETABUFER;
 
 typedef struct tagSTHRPARAMS {
+	int argc;
+	char **argv;
 	int infd;
 	int outfd;
 #ifdef PRINT_DEBUG
@@ -43,6 +47,9 @@ typedef struct tagSTHRPARAMS {
 
 void *
 reorderer_thr(void *args);
+
+void *
+spawn_ui_thr(void *args);
 
 PSMETABUFER
 metabuf_alloc();

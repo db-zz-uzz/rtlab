@@ -39,7 +39,7 @@ main(int argc, char *argv[])
 	int reorderer_fd;
 
 	STHRPARAMS reord_param = {0}, ui_param = {0};
-	pthread_t reord_thr;//, ui_thr;
+	pthread_t reord_thr, ui_thr;
 
 	if (argc < 5) {
 		printf("use: display <ffted_left_host> <ffted_left_port> <ffted_right_host> <ffted_right_port>\n");
@@ -80,6 +80,10 @@ main(int argc, char *argv[])
 	reord_param.infd = reordfd[0];
 	reord_param.outfd = uifd[1];
 	ui_param.infd = uifd[0];
+	reord_param.argc = argc;
+	reord_param.argv = argv;
+	ui_param.argc = argc;
+	ui_param.argv = argv;
 
 #ifdef PRINT_DEBUG
 	reord_param.print_mutex = ui_param.print_mutex = &print_mutex;
@@ -89,6 +93,9 @@ main(int argc, char *argv[])
 		handle_error_en(s, "pthread_create()");
 	}
 
+	if ( (s = pthread_create(&ui_thr, NULL, spawn_ui_thr, &ui_param)) != 0) {
+		handle_error_en(s, "pthread_create()");
+	}
 
 	if (active)
 		printf("Enter main loop\n");

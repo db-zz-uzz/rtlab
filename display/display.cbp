@@ -5,14 +5,14 @@
 		<Option title="display" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
-		<Option virtualFolders="headers/;shared/;" />
+		<Option virtualFolders="headers/;shared/;libgtkgraph/;" />
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/display" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="127.0.0.1 17000 127.0.0.1 17001" />
+				<Option parameters="127.0.0.1 17002 127.0.0.1 17003" />
 				<Compiler>
 					<Add option="-g" />
 					<Add directory="../include" />
@@ -21,19 +21,65 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add option="`pkg-config --cflags gtk+-2.0` `pkg-config --cflags cairo`" />
 			<Add directory="../include" />
+			<Add directory="./" />
 		</Compiler>
 		<Linker>
-			<Add option="-lxcrypt -lpthread" />
+			<Add option="-lxcrypt" />
+			<Add option="-lpthread" />
+			<Add option="-lm" />
+			<Add option="`pkg-config --libs gtk+-2.0`" />
+			<Add option="`pkg-config --libs cairo`" />
 		</Linker>
 		<Unit filename="display.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="display.h" />
+		<Unit filename="libgtkgraph/annotation.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/axis.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/gtkgraph.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/gtkgraph.h">
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/gtkgraph_internal.h">
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/gtkgraph_original.h">
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/polar.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/polar_util.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/smith.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
+		<Unit filename="libgtkgraph/trace.c">
+			<Option compilerVar="CC" />
+			<Option virtualFolder="libgtkgraph/" />
+		</Unit>
 		<Unit filename="metabuf.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="reorderer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ui_spawn.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="../include/audio_sample.h">

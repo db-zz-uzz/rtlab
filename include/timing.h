@@ -6,7 +6,7 @@
 #define TIMING_MEASURE_AREA	\
 	struct timeval timing_measure_start = {0}
 
-#define TIMING_START \
+#define TIMING_START() \
 	gettimeofday(&timing_measure_start, NULL)
 
 #define TIMING_END(prefix) \

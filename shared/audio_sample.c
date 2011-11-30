@@ -3,7 +3,7 @@
 #include "audio_sample.h"
 
 #define PRINT_MD5
-#define PRINT_LIGHT
+//#define PRINT_LIGHT
 
 #ifndef PRINT_LIGHT
 static char *
@@ -19,6 +19,7 @@ buf_type_letter(enum E_BUFFER_TYPE buf_type)
 		case BUF_TYPE_FFTED:
 			return "F";
 
+		case BUF_TYPE_UNKNOWN:
 		default:
 			return "U";
 	}
