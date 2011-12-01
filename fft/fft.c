@@ -98,13 +98,13 @@ main(int argc, char *argv[])
 				}
 				case PIN_STATUS_PARTIAL:
 				{
-					printf(" partial data. %u / %u\n", sample->size, sample->full_size);
+					// printf(" partial data. %u / %u\n", sample->size, sample->full_size);
 					/* do nothing since no data ready */
 					break;
 				}
 				case PIN_STATUS_NO_DATA:
 				{
-					printf("      no data. %u / %u\n", sample->size, sample->full_size);
+					// printf("      no data. %u / %u\n", sample->size, sample->full_size);
 					/* do nothing since no data ready */
 					break;
 				}

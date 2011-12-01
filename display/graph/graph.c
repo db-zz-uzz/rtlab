@@ -359,6 +359,8 @@ gtk_graph_draw_data (GtkGraph *graph,
 					float *buf1, float *buf2,
 					uint32_t samples, uint32_t frame_no)
 {
+	static int copyed = 0;
+
 	g_return_if_fail (graph != NULL);
 	graph->updated_once = 1;
 
@@ -366,6 +368,7 @@ gtk_graph_draw_data (GtkGraph *graph,
 
 //	g_mutex_lock(graph->mutex);
 
+if (!copyed) {
 	if (buf1) {
 		if (graph->pending_buf1 == NULL) {
 			graph->pending_buf1 = g_malloc(samples * sizeof(float));
@@ -383,7 +386,8 @@ gtk_graph_draw_data (GtkGraph *graph,
 		}
 		memcpy(graph->pending_buf2, buf2, samples * sizeof(float));
 	}
-
+	copyed = 1;
+}
 	graph->pending_frame_no = frame_no;
 	graph->pending_samples = samples;
 

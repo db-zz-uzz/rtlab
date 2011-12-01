@@ -83,7 +83,7 @@ main(int argc, char *argv[])
 			switch (pin_read_sample(pin, sample)) {
 				case PIN_STATUS_READY:
 				{
-					TIMING_START;
+					TIMING_START();
 
 					PSSAMPLEHEADER header = (PSSAMPLEHEADER)sample->buf;
 					print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
@@ -122,13 +122,13 @@ main(int argc, char *argv[])
 				}
 				case PIN_STATUS_PARTIAL:
 				{
-					printf(" partial data. %u / %u\n", sample->size, sample->full_size);
+					// printf(" partial data. %u / %u\n", sample->size, sample->full_size);
 					/* do nothing since no data ready */
 					break;
 				}
 				case PIN_STATUS_NO_DATA:
 				{
-					printf("      no data. %u / %u\n", sample->size, sample->full_size);
+					// printf("      no data. %u / %u\n", sample->size, sample->full_size);
 					/* do nothing since no data ready */
 					break;
 				}
