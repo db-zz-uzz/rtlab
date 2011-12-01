@@ -67,11 +67,11 @@ buferize_sample(struct sample_buf *buf, HBUF sample)
 	if (have_pair != -1) {
 		res = metabuf_alloc();
 		if (this_ch == CHANNEL_LEFT) {
-			res->left = buf[this_ch].ptr[buf[this_ch].count - 1];
-			res->right = buf[other_ch].ptr[buf[other_ch].count - 1];
+			res->left_fft = buf[this_ch].ptr[buf[this_ch].count - 1];
+			res->right_fft = buf[other_ch].ptr[buf[other_ch].count - 1];
 		} else {
-			res->right = buf[this_ch].ptr[buf[this_ch].count - 1];
-			res->left = buf[other_ch].ptr[buf[other_ch].count - 1];
+			res->right_fft = buf[this_ch].ptr[buf[this_ch].count - 1];
+			res->left_fft = buf[other_ch].ptr[buf[other_ch].count - 1];
 		}
 
 		if (have_pair > buf[this_ch].count - 1) {
@@ -104,8 +104,8 @@ calc_data(PSMETABUFER metabuf)
 	float coef;
 	int i, samples;
 
-	l_head = (PSSAMPLEHEADER)metabuf->left->buf;
-	r_head = (PSSAMPLEHEADER)metabuf->right->buf;
+	l_head = (PSSAMPLEHEADER)metabuf->left_fft->buf;
+	r_head = (PSSAMPLEHEADER)metabuf->right_fft->buf;
 
 	samples = l_head->samples;
 	sxy = malloc(sizeof(float) * 2 * samples);
@@ -114,8 +114,8 @@ calc_data(PSMETABUFER metabuf)
 
 	coef = (float)1 / (samples * r_head->samplerate);
 
-	l_data = (float *)metabuf->left->buf + HEADER_SIZE;
-	r_data = (float *)metabuf->right->buf + HEADER_SIZE;
+	l_data = (float *)metabuf->left_fft->buf + HEADER_SIZE;
+	r_data = (float *)metabuf->right_fft->buf + HEADER_SIZE;
 
 	for (i = 0; i < samples; i++) {
 		sxy[i * 2] = coef * (l_data[i * 2] * r_data[i * 2] + l_data[i * 2 + 1] * r_data[i * 2 + 1]);

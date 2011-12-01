@@ -22,7 +22,7 @@ main(int argc, char *argv[])
 {
 	uint8_t active = 1;
 
-	int listen_port = 15020;
+	int listen_port;
 
 	HPINLIST connection = NULL;
 	HPIN pin;
@@ -35,18 +35,16 @@ main(int argc, char *argv[])
 	dummy_sample = buf_alloc(dummy_size_callback);
 
 	if (argc < 3) {
-		printf("use: split <host> <port> <listen_port>\n");
+		printf("usage: split <host>:<port> <listen_port>\n");
 		return 0;
 	}
 
-	if (argc > 3) {
-		sscanf(argv[3], "%i", &listen_port);
-		printf("Will listen %i port\n", listen_port);
-	}
+	sscanf(argv[2], "%i", &listen_port);
+	printf("Will listen %i port\n", listen_port);
 
 	connection = pin_list_create(MAX_EVENTS);
 	pin_listen(connection, listen_port, BACKLOG, NULL);
-	input_pin = pin_connect(connection, argv[1], argv[2]);
+	input_pin = pin_connect(connection, argv[1]);
 
 	if (!input_pin)
 		active = 0;

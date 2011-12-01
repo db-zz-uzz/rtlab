@@ -92,7 +92,7 @@ pin_listen(HPINLIST pin_list, int port, int backlog, pin_accept_callback_t accep
 
 /* connect to addr and add into list */
 HPIN
-pin_connect(HPINLIST pin_list, char *addr, char *port);
+pin_connect(HPINLIST pin_list, char *addr);
 
 /* discart all pending data and close connection */
 int

@@ -27,8 +27,8 @@ main(int argc, char *argv[])
 
 	HPINLIST connection = NULL;
 	HPIN pin;
-	HPIN input_l_pin, input_r_pin;
-	HBUF *sample, input_l_sample, input_r_sample, dummy_sample;
+	HPIN /*input_l_pin, input_r_pin,*/ input_l_fft_pin, input_r_fft_pin;
+	HBUF *sample, /*input_l_sample, input_r_sample,*/ dummy_sample, input_l_fft_sample, input_r_fft_sample;
 
 #ifdef PRINT_DEBUG
 	pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -42,7 +42,11 @@ main(int argc, char *argv[])
 	pthread_t reord_thr, ui_thr;
 
 	if (argc < 5) {
-		printf("use: display <ffted_left_host> <ffted_left_port> <ffted_right_host> <ffted_right_port>\n");
+		printf("use: display \n"
+				"\t<ffted_left_host>:<port>\n"
+				"\t<ffted_right_host>:<port>\n"
+				"\t<samples_left_host>:<port>\n"
+				"\t<samples_right_host>:<port>\n");
 		return 0;
 	}
 
@@ -53,14 +57,14 @@ main(int argc, char *argv[])
 	/* wait mutex unlocked (ui thread being inited) */
 
 	connection = pin_list_create(MAX_EVENTS);
-	input_l_pin = pin_connect(connection, argv[1], argv[2]);
-	input_r_pin = pin_connect(connection, argv[3], argv[4]);
+	input_l_fft_pin = pin_connect(connection, argv[1]);
+	input_r_fft_pin = pin_connect(connection, argv[2]);
 
-	input_l_sample = buf_alloc(sample_size_callback);
-	input_r_sample = buf_alloc(sample_size_callback);
+	input_l_fft_sample = buf_alloc(sample_size_callback);
+	input_r_fft_sample = buf_alloc(sample_size_callback);
 	dummy_sample = buf_alloc(dummy_size_callback);
 
-	if (!input_l_pin || !input_r_pin) {
+	if (!input_l_fft_pin || !input_r_fft_pin) {
 		active = 0;
 		/* terminate/signal to exit ui thread */
 	}
@@ -105,12 +109,12 @@ main(int argc, char *argv[])
 		/* loop for pins with active events */
 		while ( (pin = pin_list_get_next_event(connection, PIN_EVENT_READ)) != NULL ) {
 
-			if (pin == input_l_pin) {
+			if (pin == input_l_fft_pin) {
 				/* safe_print(&print_mutex, "choose left\n"); */
-				sample = &input_l_sample;
-			} else if (pin == input_r_pin) {
+				sample = &input_l_fft_sample;
+			} else if (pin == input_r_fft_pin) {
 				/* safe_print(&print_mutex, "choose right\n"); */
-				sample = &input_r_sample;
+				sample = &input_r_fft_sample;
 			} else {
 				sample = &dummy_sample;
 			}

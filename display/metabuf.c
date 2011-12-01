@@ -22,6 +22,12 @@ metabuf_free(PSMETABUFER metabuf)
 	if (metabuf->right)
 		buf_free(metabuf->right);
 
+	if (metabuf->left_fft)
+		buf_free(metabuf->left_fft);
+
+	if (metabuf->right_fft)
+		buf_free(metabuf->right_fft);
+
 	if (metabuf->sd_log)
 		buf_free(metabuf->sd_log);
 

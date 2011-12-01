@@ -142,10 +142,12 @@ main(int argc, char *argv[])
 
 	TIMING_MEASURE_AREA;
 
-	if (argc > 1) {
-		sscanf(argv[1], "%i", &listen_port);
-		printf("Will listen %i port\n", listen_port);
+	if (argc < 2) {
+		printf("usage: source <listen_port>\n");
 	}
+
+	sscanf(argv[1], "%i", &listen_port);
+	printf("Will listen %i port\n", listen_port);
 
 	connection = pin_list_create(MAX_EVENTS);
 	pin_listen(connection, listen_port, BACKLOG, NULL);

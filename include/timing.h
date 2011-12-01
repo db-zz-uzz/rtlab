@@ -16,7 +16,7 @@ do { \
 	gettimeofday(&timing_measure_end, NULL); \
 	usec = ((uint64_t)timing_measure_end.tv_sec * 1000000 + timing_measure_end.tv_usec) - \
 		   ((uint64_t)timing_measure_start.tv_sec * 1000000 + timing_measure_start.tv_usec); \
-	printf("[%s] work time %llu usec\n", (prefix), usec); \
+	printf("[%s] \t%llu usec\n", (prefix), usec); \
 } while (0)
 
 #define TIMING_DIFF(start, end) \

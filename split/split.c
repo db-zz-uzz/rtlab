@@ -46,14 +46,14 @@ main(int argc, char *argv[])
 	input_sample = buf_alloc(sample_size_callback);
 	dummy_sample = buf_alloc(dummy_size_callback);
 
-	if (argc < 3 || argc == 4) {
-		printf("use: split <host> <port> <listen_left_port> <listen_right_port>\n");
+	if (argc < 4) {
+		printf("usage: split <host>:<port> <listen_left_port> <listen_right_port>\n");
 		return 0;
 	}
 
 	if (argc > 3) {
-		sscanf(argv[3], "%i", &listen_left_port);
-		sscanf(argv[4], "%i", &listen_right_port);
+		sscanf(argv[2], "%i", &listen_left_port);
+		sscanf(argv[3], "%i", &listen_right_port);
 		printf("Will listen: left on %i, right on %i port\n", listen_left_port, listen_right_port);
 	}
 
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 	listen_right_pin = pin_listen(connection, listen_right_port, BACKLOG, split_accepct_callback);
 	pin_set_flags(listen_right_pin, PIN_OUT_RIGHT);
 
-	input_pin = pin_connect(connection, argv[1], argv[2]);
+	input_pin = pin_connect(connection, argv[1]);
 
 	if (!input_pin)
 		active = 0;

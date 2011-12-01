@@ -320,17 +320,24 @@ pin_listen(HPINLIST pin_list, int port, int backlog, pin_accept_callback_t accep
 }
 
 HPIN
-pin_connect(HPINLIST pin_list, char *addr, char *port)
+pin_connect(HPINLIST pin_list, char *addr)
 {
+	char *host;
+	char *port;
+	char *saveptr;
+
 	int source_sock;
 
-	if (!pin_list || !addr || !port) {
+	if (!pin_list || !addr) {
 		return NULL;
 	}
 
+	host = strtok_r(addr, ":", &saveptr);
+	port = strtok_r(NULL, ":", &saveptr);
+
 	if ( (source_sock = connect_to(addr, port)) == -1 )
 	{
-		printf("Cannot connect to '%s:%s'\n", addr, port);
+		printf("Error: Failed to connect to '%s:%s'\n", host, port);
 		return NULL;
 	}
 

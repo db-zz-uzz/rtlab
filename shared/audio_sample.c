@@ -1,10 +1,16 @@
-#include <xcrypt.h>
+#include <stdio.h>
 
 #include "audio_sample.h"
 
-#define PRINT_MD5
+//#define PRINT_MD5
 //#define PRINT_LIGHT
+#define ASAMPLE_SILENT
 
+#ifdef PRINT_MD5
+#include <xcrypt.h>
+#endif
+
+#ifndef ASAMPLE_SILENT
 #ifndef PRINT_LIGHT
 static char *
 buf_type_letter(enum E_BUFFER_TYPE buf_type)
@@ -25,16 +31,19 @@ buf_type_letter(enum E_BUFFER_TYPE buf_type)
 	}
 }
 #endif
+#endif // ASAMPLE_SILENT
 
 #ifdef PRINT_LIGHT
 void
 print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 {
+#ifndef ASAMPLE_SILENT
 	printf("[%6u] %ld.%06ld\n",
 			header->number,
 			header->timestamp.tv_sec,
 			header->timestamp.tv_usec);
 	return;
+#endif // ASAMPLE_SILENT
 }
 
 #else
@@ -42,6 +51,8 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 void
 print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 {
+#ifndef ASAMPLE_SILENT
+
 #ifdef PRINT_MD5
 	uint8_t i;
 	uint8_t res[16];
@@ -69,6 +80,7 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size)
 	printf("  %u/%u B\n", BUF_SIZE(header), data_size);
 
 	return;
+#endif // ASAMPLE_SILENT
 }
 #endif
 
