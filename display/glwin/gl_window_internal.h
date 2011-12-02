@@ -36,4 +36,10 @@ extern GLWindow GLWin;
 void
 render_graph(GLWindow *GLWin);
 
+void
+draw_lock();
+
+void
+draw_unlock();
+
 #endif // GL_WINDOW_INTERNAL_H_INCLUDED

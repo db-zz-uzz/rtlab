@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/queue.h>
 #include <math.h>
+#include <pthread.h>
 
 #include "glwin/gl_window.h"
 #include "glwin/gl_window_internal.h"
@@ -11,6 +12,8 @@
 #if 0
 #define AUTOLEVELS
 #endif
+
+#define BRESENHAM_SCALING
 
 STAILQ_HEAD(SDataBufferHead, SDataBuffer);
 
@@ -46,7 +49,22 @@ struct SGraph {
 };
 
 static struct SGraph graphs[GRAPH_COUNT];
+pthread_mutex_t draw_mutex;
 
+void
+draw_lock()
+{
+	printf("locking\n");
+	pthread_mutex_lock(&draw_mutex);
+	printf("locked\n");
+}
+
+void
+draw_unlock()
+{
+	printf("unlocking\n");
+	pthread_mutex_unlock(&draw_mutex);
+}
 
 static void
 del_buf(struct SDataBuffer *buf)
@@ -72,6 +90,9 @@ clamp_limits(float data, float min, float max)
 	return data;
 }
 
+#define AVERAGE(a, b)   (PIXEL)( ((a) + (b)) >> 1 )
+
+
 static void
 render_line(struct SGraph *graph, int channel,
 			float *data, uint32_t samples,
@@ -91,6 +112,13 @@ render_line(struct SGraph *graph, int channel,
 	float hsize = max - min;
 
 	uint32_t increment = samples / pixels;
+
+#ifdef BRESENHAM_SCALING
+	int num_pixels = pixels;
+	int int_part = samples / pixels;
+	int frac_part = samples % pixels;
+	int e = 0;
+#endif
 
 	if (increment == 0)
 		increment = 1;
@@ -112,6 +140,18 @@ render_line(struct SGraph *graph, int channel,
 	/* glEnable(GL_LINE_SMOOTH); */
 	/* glHint(GL_FASTEST, GL_LINE_SMOOTH_HINT); */
 	glBegin(GL_LINE_STRIP);
+#ifdef BRESENHAM_SCALING
+	i = 0;
+	while (num_pixels-- > 0) {
+		glVertex2f(rect->left + hstep * i, vcenter - vstep * clamp_limits(data[i], min, max));
+		i += int_part;
+		e += frac_part;
+		if (e >= pixels) {
+			e -= pixels;
+			i += 1;
+		}
+	}
+#else
 	for (i = 0; i < samples; i += increment) {
 		if (i > samples)
 			i = samples - 1;
@@ -125,6 +165,7 @@ render_line(struct SGraph *graph, int channel,
 			newmax = max;
 #endif
 	}
+#endif
 	glEnd();
 
 #ifdef AUTOLEVELS
@@ -159,6 +200,9 @@ void
 glwin_draw_init()
 {
 	int i, j;
+
+	pthread_mutexattr_t mutex_attr;
+
 	for (i = 0; i < GRAPH_COUNT; i++) {
 		memset(&graphs[i].head, 0, sizeof(struct SDataBufferHead));
 		STAILQ_INIT(&graphs[i].head);
@@ -172,6 +216,14 @@ glwin_draw_init()
 			graphs[i].limits[j].min = -20;
 		}
 	}
+
+	pthread_mutexattr_init(&mutex_attr);
+/*
+	pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_NORMAL);
+*/
+	pthread_mutex_init(&draw_mutex, &mutex_attr);
+
+	pthread_mutexattr_destroy(&mutex_attr);
 }
 
 void
@@ -187,6 +239,8 @@ glwin_draw_close()
 			del_buf(buf);
 		}
 	}
+
+	pthread_mutex_destroy(&draw_mutex);
 }
 
 void
@@ -197,7 +251,7 @@ render_graph(GLWindow *win)
 	struct SRect mrect;
 	struct SRect brect;
 	int pixel_width = win->width - PADDING * 2;
-	float glpadding = (float)PADDING / win->width * VERT_SIZE;
+	float glpadding = (float)PADDING / win->height * VERT_SIZE;
 
 	third = win->lh / 3;
 	two = win->lh - third;
@@ -286,6 +340,8 @@ glwin_draw_data(int graph, float *left, float *right, uint32_t samples)
 	memcpy(buf->right, right, buflen);
 
 	STAILQ_INSERT_TAIL(&graphs[graph].head, buf, entry);
+
+	draw_unlock();
 }
 
 void

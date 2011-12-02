@@ -126,8 +126,8 @@ spawn_ui_thr(void *args)
 	glwin_set_color(GRAPH_FFT, LEFT, 0, 0.8, 0.2);
 	glwin_set_color(GRAPH_FFT, RIGHT, 0, 0.2, 0.8);
 
-	glwin_set_limits(GRAPH_FFT, LEFT, -0.1, 0.1);
-	glwin_set_limits(GRAPH_FFT, RIGHT, -0.1, 0.1);
+	glwin_set_limits(GRAPH_FFT, LEFT, -1.0, 1.0);
+	glwin_set_limits(GRAPH_FFT, RIGHT, -1.0, 1.0);
 
 	glwin_set_color(GRAPH_SAMPLES, LEFT, 0.8, 0.0, 0.2);
 	glwin_set_color(GRAPH_SAMPLES, RIGHT, 0.2, 0.8, 0.0);

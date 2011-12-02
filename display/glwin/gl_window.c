@@ -240,6 +240,7 @@ int glwin_main()
     /* wait for events*/
     while (!done)
     {
+		draw_lock();
         /* handle the events in the queue */
         while (XPending(GLWin.dpy) > 0)
         {
@@ -284,7 +285,6 @@ int glwin_main()
             }
         }
 		render_graph(&GLWin);
-		usleep(20);
     }
     killGLWindow();
     return 0;
