@@ -19,9 +19,11 @@ do { \
 		   ((uint64_t)timing_measure_start.tv_sec * 1000000 + timing_measure_start.tv_usec); \
 	if ((decr = usec / ++timing_count) == 0) \
 		decr = 1; \
-	timing_average += (usec < timing_average) ? \
-					-(decr) : \
-					(decr); \
+	if ( usec != timing_average ) { \
+		timing_average += (usec < timing_average) ? \
+						-(decr) : \
+						(decr); \
+	} \
 	printf("[%s] %8llu # %8llu usec. %8llu avg.\n", \
 			(prefix), timing_count, usec, timing_average); \
 } while (0)
