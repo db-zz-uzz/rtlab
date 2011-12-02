@@ -120,7 +120,7 @@ main(int argc, char *argv[])
 	int pipefd[2];
 
 	/* buffer length in samples. would be multiplied by channels and sample size */
-	int buffer_length = 2048;
+	int buffer_length = 1024;
 	int listen_port = 5002;
 	uint32_t counter = 0;
 
@@ -131,7 +131,7 @@ main(int argc, char *argv[])
     pa_sample_spec ss = {
     	/* for fft need PA_SAMPLE_FLOAT32LE or PA_SAMPLE_FLOAT32BE */
         .format = PA_SAMPLE_FLOAT32LE, // PA_SAMPLE_S16LE,
-        .rate = 44100,
+        .rate = 22050,
         .channels = 2
     };
 

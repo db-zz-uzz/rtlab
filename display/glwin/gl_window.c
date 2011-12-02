@@ -52,7 +52,6 @@ void resizeGLScene(unsigned int width, unsigned int height)
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    //gluPerspective(90.0f, (GLfloat)width / (GLfloat)height, 0.1f, 100.0f);
     GLWin.lh = VERT_SIZE;
     GLWin.lw = VERT_SIZE * width / height;
     gluOrtho2D(0 , VERT_SIZE * width / height, VERT_SIZE, 0);
@@ -225,7 +224,7 @@ void keyPressed(KeySym key)
     }
 }
 
-int glwin_main(int argc, char **argv)
+int glwin_main()
 {
     XEvent event;
     KeySym key;
@@ -285,7 +284,7 @@ int glwin_main(int argc, char **argv)
             }
         }
 		render_graph(&GLWin);
-		usleep(10);
+		usleep(20);
     }
     killGLWindow();
     return 0;

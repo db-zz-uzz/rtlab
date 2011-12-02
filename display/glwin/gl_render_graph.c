@@ -3,11 +3,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/queue.h>
+#include <math.h>
 
 #include "glwin/gl_window.h"
 #include "glwin/gl_window_internal.h"
 
-//#define AUTOLEVELS
+#if 0
+#define AUTOLEVELS
+#endif
 
 STAILQ_HEAD(SDataBufferHead, SDataBuffer);
 
@@ -70,7 +73,9 @@ clamp_limits(float data, float min, float max)
 }
 
 static void
-render_line(struct SGraph *graph, int channel, float *data, uint32_t samples, struct SRect *rect)
+render_line(struct SGraph *graph, int channel,
+			float *data, uint32_t samples,
+			struct SRect *rect, uint32_t pixels)
 {
 	uint32_t i;
 	float hstep;
@@ -85,6 +90,11 @@ render_line(struct SGraph *graph, int channel, float *data, uint32_t samples, st
 #endif
 	float hsize = max - min;
 
+	uint32_t increment = samples / pixels;
+
+	if (increment == 0)
+		increment = 1;
+
 	struct scolor *color = &graph->color[channel];
 
 	vcenter = (rect->bottom + rect->top) / 2;
@@ -98,8 +108,14 @@ render_line(struct SGraph *graph, int channel, float *data, uint32_t samples, st
 			vcenter);
 */
 	glColor3f(color->r, color->g, color->b);
+	glLineWidth(0.1);
+	/* glEnable(GL_LINE_SMOOTH); */
+	/* glHint(GL_FASTEST, GL_LINE_SMOOTH_HINT); */
 	glBegin(GL_LINE_STRIP);
-	for (i = 0; i < samples; i += 2) {
+	for (i = 0; i < samples; i += increment) {
+		if (i > samples)
+			i = samples - 1;
+
 		glVertex2f(rect->left + hstep * i, vcenter - vstep * clamp_limits(data[i], min, max));
 #ifdef AUTOLEVELS
 		if (data[i] < min)
@@ -109,6 +125,7 @@ render_line(struct SGraph *graph, int channel, float *data, uint32_t samples, st
 			newmax = max;
 #endif
 	}
+	glEnd();
 
 #ifdef AUTOLEVELS
 	if (newmax > max)
@@ -117,12 +134,10 @@ render_line(struct SGraph *graph, int channel, float *data, uint32_t samples, st
 	if (newmin < min)
 		graph->limits[channel].min = newmin;
 #endif
-
-	glEnd();
 }
 
 static void
-render_buffer(struct SGraph *graph, struct SRect *rect)
+render_buffer(struct SGraph *graph, struct SRect *rect, uint32_t pixels)
 {
 	struct SDataBuffer *buf = STAILQ_FIRST(&graph->head);
 
@@ -135,8 +150,8 @@ render_buffer(struct SGraph *graph, struct SRect *rect)
 		buf = STAILQ_FIRST(&graph->head);
 	}
 
-	render_line(graph, LEFT, buf->left, buf->samples, rect);
-	render_line(graph, RIGHT, buf->right, buf->samples, rect);
+	render_line(graph, LEFT, buf->left, buf->samples, rect, pixels);
+	render_line(graph, RIGHT, buf->right, buf->samples, rect, pixels);
 
 }
 
@@ -177,21 +192,30 @@ glwin_draw_close()
 void
 render_graph(GLWindow *win)
 {
-	float vcenter;
+	float third, two;
 	struct SRect trect;
+	struct SRect mrect;
 	struct SRect brect;
+	int pixel_width = win->width - PADDING * 2;
+	float glpadding = (float)PADDING / win->width * VERT_SIZE;
 
-	vcenter = win->lh / 2;
+	third = win->lh / 3;
+	two = win->lh - third;
 
-	trect.left = PADDING;
-	trect.right = win->lw - PADDING;
-	trect.top = PADDING;
-	trect.bottom = vcenter - PADDING;
+	trect.left = glpadding;
+	trect.right = win->lw - glpadding;
+	trect.top = glpadding;
+	trect.bottom = third - glpadding;
 
-	brect.left = PADDING;
-	brect.right = win->lw - PADDING;
-	brect.top = vcenter + PADDING;
-	brect.bottom = win->lh - PADDING;
+	mrect.left = glpadding;
+	mrect.right = win->lw - glpadding;
+	mrect.top = third + glpadding;
+	mrect.bottom = two - glpadding;
+
+	brect.left = glpadding;
+	brect.right = win->lw - glpadding;
+	brect.top = two + glpadding;
+	brect.bottom = win->lh - glpadding;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
@@ -199,12 +223,15 @@ render_graph(GLWindow *win)
 
 	glColor3f(0.2, 0.2, 0.2);
 	glBegin(GL_LINES);
-		glVertex2f(0.0 + PADDING, vcenter);
-		glVertex2f(win->lw - PADDING, vcenter);
+		glVertex2f(0.0 + glpadding, third);
+		glVertex2f(win->lw - glpadding, third);
+		glVertex2f(0.0 + glpadding, two);
+		glVertex2f(win->lw - glpadding, two);
 	glEnd();
 
-	render_buffer(&graphs[GRAPH_SAMPLES], &trect);
-	render_buffer(&graphs[GRAPH_FFT], &brect);
+	render_buffer(&graphs[GRAPH_SAMPLES], &trect, pixel_width);
+	render_buffer(&graphs[GRAPH_FFT], &mrect, pixel_width);
+	render_buffer(&graphs[GRAPH_SDENS], &brect, pixel_width);
 #if 0
 	glColor3f(0.0, 1.0, 0.2);
     glBegin(GL_LINE_LOOP);
@@ -257,6 +284,32 @@ glwin_draw_data(int graph, float *left, float *right, uint32_t samples)
 
 	memcpy(buf->left, left, buflen);
 	memcpy(buf->right, right, buflen);
+
+	STAILQ_INSERT_TAIL(&graphs[graph].head, buf, entry);
+}
+
+void
+glwin_draw_data_c(int graph, float *left, float *right, uint32_t samples)
+{
+	uint32_t i;
+
+	if (graph > GRAPH_COUNT || left == NULL || right == NULL || samples == 0) {
+		return;
+	}
+
+	uint32_t buflen = sizeof(float) * samples;
+	struct SDataBuffer *buf = malloc(sizeof(struct SDataBuffer));
+	memset(buf, 0, sizeof(struct SDataBuffer));
+
+	buf->samples = samples;
+
+	buf->left = malloc(buflen);
+	buf->right = malloc(buflen);
+
+	for (i = 0; i < samples; i++) {
+		buf->left[i] = (float)sqrt(left[i*2] * left[i*2] + left[i*2+1] + left[i*2+1]);
+		buf->right[i] = (float)sqrt(right[i*2] * right[i*2] + right[i*2+1] + right[i*2+1]);
+	}
 
 	STAILQ_INSERT_TAIL(&graphs[graph].head, buf, entry);
 }

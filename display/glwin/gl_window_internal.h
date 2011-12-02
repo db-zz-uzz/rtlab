@@ -6,8 +6,8 @@
 #include <GL/glu.h>
 #include <X11/extensions/xf86vmode.h>
 
-#define VERT_SIZE 10.0f
-#define PADDING 0.5f
+#define VERT_SIZE 100.0f
+#define PADDING 20 /* pixels */
 
 /* stuff about our window grouped together */
 typedef struct {

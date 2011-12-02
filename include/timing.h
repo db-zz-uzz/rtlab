@@ -22,4 +22,4 @@ do { \
 #define TIMING_DIFF(start, end) \
 	(uint64_t)((end).tv_sec * 1000000 + (end).tv_usec) - (uint64_t)((start).tv_sec * 1000000 + (start).tv_usec)
 
-#endif // TIMING_H_INCLUDED
+#endif /* TIMING_H_INCLUDED */

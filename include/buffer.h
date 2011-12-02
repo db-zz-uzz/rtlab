@@ -52,4 +52,4 @@ buf_resize(HBUF buf, uint32_t size);
 uint32_t
 dummy_size_callback(HBUF buf, uint8_t type);
 
-#endif // BUFFER_H_INCLUDED
+#endif /* BUFFER_H_INCLUDED */

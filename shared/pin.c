@@ -214,7 +214,7 @@ pin_list_create(int events_count)
 {
 	HPINLIST pin_list = malloc(sizeof(SPINLIST));
 	int epollfd;
-	HPIN *read_list, *write_list;
+	HPIN *read_list = NULL, *write_list = NULL;
 	struct epoll_event *events;
 
 	if (!(events = malloc(events_count * sizeof(struct epoll_event))) ||
@@ -661,7 +661,7 @@ pin_list_write_sample(HPINLIST pin_list, HBUF sample, uint8_t restrict_pin)
 	PSBUFLISTENTRY packet = NULL;
 	HPIN pin;
 	uint8_t inited = 0;
-	uint8_t *buffer;
+	uint8_t *buffer = NULL;
 	struct epoll_event ev;
 
 //	int loop = 1;

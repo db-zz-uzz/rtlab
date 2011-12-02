@@ -130,4 +130,4 @@ pin_read_sample(HPIN pin, HBUF sample);
 int
 pin_list_write_sample(HPINLIST pin_list, HBUF sample, uint8_t restrict_pin);
 
-#endif // PIN_H_INCLUDED
+#endif /* PIN_H_INCLUDED */

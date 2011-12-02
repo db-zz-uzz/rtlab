@@ -40,9 +40,15 @@ buferize_sample(struct sample_buf *buf, HBUF sample)
 
 	uint8_t this_ch = this_h->channel_no - 1;
 	uint8_t other_ch = 1 - this_ch;
-
+/*
 	//print_header(this_h, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
 	//assert(this_h->channel_no >= 2);
+*/
+	if (this_h->buf_type == BUF_TYPE_SEQUENTIAL) {
+		printf("free buf %u %u\n", this_h->channel_no, this_h->number);
+		buf_free(sample);
+		return NULL;
+	}
 
 	if (buf[this_ch].count >= MAX_BUFFERED) {
 		for (i = 0; i < MAX_BUFFERED - 1; i++) {
@@ -50,7 +56,7 @@ buferize_sample(struct sample_buf *buf, HBUF sample)
 		}
 		buf[this_ch].ptr[MAX_BUFFERED - 1] = sample;
 		buf[this_ch].count = MAX_BUFFERED;
-		//printf("[reorderer] bufferize %u. max count reached.\n", this_ch);
+		/* printf("[reorderer] bufferize %u. max count reached.\n", this_ch); */
 	} else {
 		buf[this_ch].ptr[buf[this_ch].count] = sample;
 		buf[this_ch].count += 1;
@@ -109,9 +115,9 @@ calc_data(PSMETABUFER metabuf)
 
 	samples = l_head->samples;
 	sxy = malloc(sizeof(float) * 2 * samples);
-
+/*
 	//assert(l_head->samples == r_head->samples);
-
+*/
 	coef = (float)1 / (samples * r_head->samplerate);
 
 	l_data = (float *)metabuf->left_fft->buf + HEADER_SIZE;
@@ -154,12 +160,11 @@ void *
 reorderer_thr(void *args)
 {
 	PSTHRPARAMS params = (PSTHRPARAMS)args;
-	struct sample_buf samples[2];
+	struct sample_buf samples[4];
 
 	HPINLIST pin_list;
 	HPIN input_pin, pin;
 	HBUF sample;
-	//PSSAMPLEHEADER header;
 	PSMETABUFER metabuf;
 
 	TIMING_MEASURE_AREA;

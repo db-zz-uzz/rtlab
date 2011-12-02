@@ -84,8 +84,12 @@ ui_updater_thr(void *args)
 								(float *)(meta->sd_mod->buf + HEADER_SIZE),
 								header->samples);
 
-				/* draw here */
-				glwin_draw_data(GRAPH_FFT,
+				glwin_draw_data_c(GRAPH_FFT,
+								(float *)(meta->left_fft->buf + HEADER_SIZE),
+								(float *)(meta->right_fft->buf + HEADER_SIZE),
+								header->samples);
+
+				glwin_draw_data(GRAPH_SDENS,
 								(float *)(meta->sd_log->buf + HEADER_SIZE),
 								(float *)(meta->sd_mod->buf + HEADER_SIZE),
 								header->samples);
@@ -122,14 +126,20 @@ spawn_ui_thr(void *args)
 	glwin_set_color(GRAPH_FFT, LEFT, 0, 0.8, 0.2);
 	glwin_set_color(GRAPH_FFT, RIGHT, 0, 0.2, 0.8);
 
-	glwin_set_limits(GRAPH_FFT, LEFT, -50.0, 50.0);
-	glwin_set_limits(GRAPH_FFT, RIGHT, -5.0, 5.0);
+	glwin_set_limits(GRAPH_FFT, LEFT, -0.1, 0.1);
+	glwin_set_limits(GRAPH_FFT, RIGHT, -0.1, 0.1);
 
 	glwin_set_color(GRAPH_SAMPLES, LEFT, 0.8, 0.0, 0.2);
 	glwin_set_color(GRAPH_SAMPLES, RIGHT, 0.2, 0.8, 0.0);
 
 	glwin_set_limits(GRAPH_SAMPLES, LEFT, -200.0, 200.0);
 	glwin_set_limits(GRAPH_SAMPLES, RIGHT, -1.0, 1.0);
+
+	glwin_set_color(GRAPH_SDENS, LEFT, 0.8, 0.4, 0.0);
+	glwin_set_color(GRAPH_SDENS, RIGHT, 0.4, 0.2, 0.8);
+
+	glwin_set_limits(GRAPH_SDENS, LEFT, -100.0, 100.0);
+	glwin_set_limits(GRAPH_SDENS, RIGHT, -10.0, 10.0);
 
 	if ( (s = pthread_create(&ui_updater, NULL, ui_updater_thr, &updparams)) != 0) {
 		handle_error_en(s, "pthread_create()");

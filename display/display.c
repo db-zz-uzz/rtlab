@@ -27,8 +27,8 @@ main(int argc, char *argv[])
 
 	HPINLIST connection = NULL;
 	HPIN pin;
-	HPIN /*input_l_pin, input_r_pin,*/ input_l_fft_pin, input_r_fft_pin;
-	HBUF *sample, /*input_l_sample, input_r_sample,*/ dummy_sample, input_l_fft_sample, input_r_fft_sample;
+	HPIN input_l_pin, input_r_pin, input_l_fft_pin, input_r_fft_pin;
+	HBUF *sample, input_l_sample, input_r_sample, dummy_sample, input_l_fft_sample, input_r_fft_sample;
 
 #ifdef PRINT_DEBUG
 	pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -38,8 +38,11 @@ main(int argc, char *argv[])
 	int uifd[2];
 	int reorderer_fd;
 
-	STHRPARAMS reord_param = {0}, ui_param = {0};
+	STHRPARAMS reord_param, ui_param;
 	pthread_t reord_thr, ui_thr;
+
+	memset(&reord_param, 0, sizeof(STHRPARAMS));
+	memset(&ui_param, 0, sizeof(STHRPARAMS));
 
 	if (argc < 5) {
 		printf("use: display \n"
@@ -59,12 +62,17 @@ main(int argc, char *argv[])
 	connection = pin_list_create(MAX_EVENTS);
 	input_l_fft_pin = pin_connect(connection, argv[1]);
 	input_r_fft_pin = pin_connect(connection, argv[2]);
+	input_l_pin = pin_connect(connection, argv[3]);
+	input_r_pin = pin_connect(connection, argv[4]);
 
 	input_l_fft_sample = buf_alloc(sample_size_callback);
 	input_r_fft_sample = buf_alloc(sample_size_callback);
+	input_l_sample = buf_alloc(sample_size_callback);
+	input_r_sample = buf_alloc(sample_size_callback);
 	dummy_sample = buf_alloc(dummy_size_callback);
 
-	if (!input_l_fft_pin || !input_r_fft_pin) {
+	if (!input_l_fft_pin || !input_r_fft_pin ||
+		!input_l_pin || !input_r_pin) {
 		active = 0;
 		/* terminate/signal to exit ui thread */
 	}
@@ -115,6 +123,10 @@ main(int argc, char *argv[])
 			} else if (pin == input_r_fft_pin) {
 				/* safe_print(&print_mutex, "choose right\n"); */
 				sample = &input_r_fft_sample;
+			} else if (pin == input_l_pin) {
+				sample = &input_l_sample;
+			} else if (pin == input_r_pin) {
+				sample = &input_r_sample;
 			} else {
 				sample = &dummy_sample;
 			}
@@ -139,7 +151,6 @@ main(int argc, char *argv[])
 					}
 
 					*sample = buf_alloc(sample_size_callback);
-					//sample->size = 0;
 					break;
 				}
 				case PIN_STATUS_CLOSED:
@@ -157,13 +168,13 @@ main(int argc, char *argv[])
 				}
 				case PIN_STATUS_PARTIAL:
 				{
-					printf(" partial data. %u / %u\n", (*sample)->size, (*sample)->full_size);
+					/* printf(" partial data. %u / %u\n", (*sample)->size, (*sample)->full_size);*/
 					/* do nothing since no data ready */
 					break;
 				}
 				case PIN_STATUS_NO_DATA:
 				{
-					printf("      no data. %u / %u\n", (*sample)->size, (*sample)->full_size);
+					/* printf("      no data. %u / %u\n", (*sample)->size, (*sample)->full_size); */
 					/* do nothing since no data ready */
 					break;
 				}

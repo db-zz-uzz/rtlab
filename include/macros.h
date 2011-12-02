@@ -14,4 +14,4 @@
 #define MESSAGE_END	(void *)-1
 
 
-#endif // MACROS_H_INCLUDED
+#endif /* MACROS_H_INCLUDED */

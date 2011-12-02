@@ -57,4 +57,4 @@ metabuf_alloc();
 void
 metabuf_free(PSMETABUFER metabuf);
 
-#endif // DISPLAY_H_INCLUDED
+#endif /* DISPLAY_H_INCLUDED */

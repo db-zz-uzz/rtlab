@@ -6,6 +6,7 @@
 enum EGraphType {
 	GRAPH_SAMPLES = 0,
 	GRAPH_FFT,
+	GRAPH_SDENS,
 
 	/* should be last */
 	GRAPH_COUNT
@@ -24,10 +25,13 @@ void
 glwin_draw_close();
 
 int
-glwin_main(int argc, char **argv);
+glwin_main();
 
 void
 glwin_draw_data(int graph, float *left, float *right, uint32_t samples);
+
+void
+glwin_draw_data_c(int graph, float *left, float *right, uint32_t samples);
 
 void
 glwin_set_color(int graph, int channel, float r, float g, float b);

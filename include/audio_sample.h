@@ -50,4 +50,4 @@ print_header(PSSAMPLEHEADER header, uint8_t *buf, uint32_t data_size);
 uint32_t
 sample_size_callback(HBUF buf, uint8_t type);
 
-#endif // AUDIO_SAMPLE_H_INCLUDED
+#endif /* AUDIO_SAMPLE_H_INCLUDED */
