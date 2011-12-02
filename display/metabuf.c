@@ -250,6 +250,10 @@ calc_data(PSMETABUFER metabuf)
 	for (i = 0; i < samples; i++) {
 		sxy[i * 2] = coef * (l_data[i * 2] * r_data[i * 2] + l_data[i * 2 + 1] * r_data[i * 2 + 1]);
 		sxy[i * 2 + 1] = coef * (-l_data[i * 2] * r_data[i * 2 + 1] + l_data[i * 2 + 1] * r_data[i * 2]);
+/*
+		printf("1. %f\t%u\t%u\n", coef, samples, r_head->samplerate);
+		printf("2. %.6f\t%.6f\t%.6f\n", coef, sxy[i*2], sxy[i*2+1]);
+*/
 	}
 
 	metabuf->sd_log = buf_alloc(NULL);

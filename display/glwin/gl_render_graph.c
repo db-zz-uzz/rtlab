@@ -365,8 +365,10 @@ glwin_draw_data_c(int graph, float *left, float *right, uint32_t samples)
 	buf->right = malloc(buflen);
 
 	for (i = 0; i < samples; i++) {
-		buf->left[i] = (float)sqrt(left[i*2] * left[i*2] + left[i*2+1] + left[i*2+1]);
-		buf->right[i] = (float)sqrt(right[i*2] * right[i*2] + right[i*2+1] + right[i*2+1]);
+		buf->left[i] = sqrtf(left[i*2] * left[i*2] + left[i*2+1] + left[i*2+1]);
+		buf->right[i] = sqrtf(right[i*2] * right[i*2] + right[i*2+1] + right[i*2+1]);
+
+		//printf("1. %f\t%f\t%f\t")
 	}
 
 	STAILQ_INSERT_TAIL(&graphs[graph].head, buf, entry);
