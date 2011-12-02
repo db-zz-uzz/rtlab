@@ -95,17 +95,17 @@ ui_updater_thr(void *args)
 				glwin_draw_data(GRAPH_SAMPLES,
 								(float *)(meta->left->buf + HEADER_SIZE),
 								(float *)(meta->right->buf + HEADER_SIZE),
-								header->samples);
+								((PSSAMPLEHEADER)meta->right->buf)->samples);
 
 				glwin_draw_data_c(GRAPH_FFT,
 								(float *)(meta->left_fft->buf + HEADER_SIZE),
 								(float *)(meta->right_fft->buf + HEADER_SIZE),
-								header->samples);
+								((PSSAMPLEHEADER)meta->right_fft->buf)->samples);
 
 				glwin_draw_data(GRAPH_SDENS,
 								(float *)(meta->sd_log->buf + HEADER_SIZE),
 								(float *)(meta->sd_mod->buf + HEADER_SIZE),
-								header->samples);
+								((PSSAMPLEHEADER)meta->sd_mod->buf)->samples);
 
 				glwin_render_data();
 #endif
