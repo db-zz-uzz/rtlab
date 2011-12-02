@@ -207,7 +207,7 @@ main(int argc, char *argv[])
 					buf_free(sample);
 					counter++;
 				}
-				printf("[source] %u samples\n", counter);
+				/* printf("[source] %u samples\n", counter); */
 				TIMING_END("source");
 				continue;
 			}

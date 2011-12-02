@@ -31,6 +31,14 @@ typedef struct tagSTHRPARAMS {
 #endif
 } STHRPARAMS, *PSTHRPARAMS;
 
+
+#define MAX_BUFFERED	3
+
+struct sample_buf {
+	HBUF ptr[MAX_BUFFERED];
+	uint8_t count;
+};
+
 #ifdef PRINT_DEBUG
 # define PRINT_LOCK(mutex)		pthread_mutex_lock(mutex)
 # define PRINT_UNLOCK(mutex)	pthread_mutex_unlock(mutex)
@@ -55,6 +63,15 @@ PSMETABUFER
 metabuf_alloc();
 
 void
+buffering_init();
+
+void
 metabuf_free(PSMETABUFER metabuf);
+
+PSMETABUFER
+buferize_sample(HBUF sample);
+
+void
+calc_data(PSMETABUFER metabuf);
 
 #endif /* DISPLAY_H_INCLUDED */
