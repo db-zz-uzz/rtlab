@@ -102,7 +102,7 @@ audio_capture_thr(void *args)
 
 		active = params->active;
 
-		TIMING_END("audio");
+		TIMING_END(" audio");
 	}
 
 audio_thr_finish:

@@ -290,7 +290,7 @@ int glwin_main()
             }
         }
 		render_graph(&GLWin);
-		TIMING_END("display");
+		TIMING_END("  display");
     }
     killGLWindow();
     return 0;

@@ -98,7 +98,7 @@ ui_updater_thr(void *args)
 
 				metabuf_free(meta);
 
-				TIMING_END("updater");
+				TIMING_END("  updater");
 			}
 
 			//buf_free(sample);
