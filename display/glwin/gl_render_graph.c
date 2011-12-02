@@ -129,10 +129,11 @@ render_line(struct SGraph *graph, int channel,
 
 	struct scolor *color = &graph->color[channel];
 
-	vcenter = (rect->bottom + rect->top) / 2;
-
 	vstep = (rect->bottom - rect->top) / hsize;
 	hstep = (rect->right - rect->left) / samples;
+
+	vcenter = rect->bottom + min * vstep;
+
 /*
 	printf("%.3f %.3f %.3f %.3f, %.3f\n",
 			rect->top, rect->bottom,

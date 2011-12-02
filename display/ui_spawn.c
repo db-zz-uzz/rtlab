@@ -145,8 +145,8 @@ spawn_ui_thr(void *args)
 
 	glwin_set_limits(GRAPH_SAMPLES,	LEFT,   -0.1,   0.1);
 	glwin_set_limits(GRAPH_SAMPLES,	RIGHT,  -0.1,   0.1);
-	glwin_set_limits(GRAPH_FFT,		LEFT,  -1.0,  1.0);
-	glwin_set_limits(GRAPH_FFT,		RIGHT, -1.0,  1.0);
+	glwin_set_limits(GRAPH_FFT,		LEFT,   0.0,  3.0);
+	glwin_set_limits(GRAPH_FFT,		RIGHT,  0.0,  3.0);
 	glwin_set_limits(GRAPH_SDENS,	LEFT, -1.0, 1.0);
 	glwin_set_limits(GRAPH_SDENS,	RIGHT, -1.0,  1.0);
 
