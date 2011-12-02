@@ -38,7 +38,6 @@ ui_updater_thr(void *args)
 	HPIN pin;
 
 	PSMETABUFER meta;
-	PSSAMPLEHEADER header;
 
 	TIMING_MEASURE_AREA;
 
@@ -91,7 +90,6 @@ ui_updater_thr(void *args)
 #endif
 
 #if 1 /* draw data */
-				header = (PSSAMPLEHEADER)meta->sd_log->buf;
 				glwin_draw_data(GRAPH_SAMPLES,
 								(float *)(meta->left->buf + HEADER_SIZE),
 								(float *)(meta->right->buf + HEADER_SIZE),
