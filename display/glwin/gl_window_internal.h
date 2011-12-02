@@ -7,7 +7,7 @@
 #include <X11/extensions/xf86vmode.h>
 
 #define VERT_SIZE 100.0f
-#define PADDING 20 /* pixels */
+#define PADDING 10 /* pixels */
 
 /* stuff about our window grouped together */
 typedef struct {

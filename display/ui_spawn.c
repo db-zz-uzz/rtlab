@@ -94,6 +94,8 @@ ui_updater_thr(void *args)
 								(float *)(meta->sd_mod->buf + HEADER_SIZE),
 								header->samples);
 
+				glwin_render_data();
+
 				metabuf_free(meta);
 
 				TIMING_END("updater");

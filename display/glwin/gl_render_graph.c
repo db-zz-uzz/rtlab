@@ -54,15 +54,15 @@ pthread_mutex_t draw_mutex;
 void
 draw_lock()
 {
-	printf("locking\n");
+	/* printf("locking\n"); */
 	pthread_mutex_lock(&draw_mutex);
-	printf("locked\n");
+	/* printf("locked\n"); */
 }
 
 void
 draw_unlock()
 {
-	printf("unlocking\n");
+	/* printf("unlocking\n"); */
 	pthread_mutex_unlock(&draw_mutex);
 }
 
@@ -340,8 +340,6 @@ glwin_draw_data(int graph, float *left, float *right, uint32_t samples)
 	memcpy(buf->right, right, buflen);
 
 	STAILQ_INSERT_TAIL(&graphs[graph].head, buf, entry);
-
-	draw_unlock();
 }
 
 void
@@ -368,4 +366,10 @@ glwin_draw_data_c(int graph, float *left, float *right, uint32_t samples)
 	}
 
 	STAILQ_INSERT_TAIL(&graphs[graph].head, buf, entry);
+}
+
+void
+glwin_render_data()
+{
+	draw_unlock();
 }

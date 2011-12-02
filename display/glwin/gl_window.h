@@ -34,6 +34,9 @@ void
 glwin_draw_data_c(int graph, float *left, float *right, uint32_t samples);
 
 void
+glwin_render_data();
+
+void
 glwin_set_color(int graph, int channel, float r, float g, float b);
 
 void

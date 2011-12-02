@@ -19,6 +19,8 @@
 #include <X11/extensions/xf86vmode.h>
 #include <X11/keysym.h>
 
+#include "timing.h"
+
 #include "glwin/gl_window.h"
 #include "glwin/gl_window_internal.h"
 
@@ -229,6 +231,8 @@ int glwin_main()
     XEvent event;
     KeySym key;
 
+    TIMING_MEASURE_AREA;
+
     done = False;
     /* default to fullscreen */
     GLWin.fs = False;
@@ -240,6 +244,7 @@ int glwin_main()
     /* wait for events*/
     while (!done)
     {
+    	TIMING_START();
 		draw_lock();
         /* handle the events in the queue */
         while (XPending(GLWin.dpy) > 0)
@@ -285,6 +290,7 @@ int glwin_main()
             }
         }
 		render_graph(&GLWin);
+		TIMING_END("display");
     }
     killGLWindow();
     return 0;

@@ -45,7 +45,7 @@ buferize_sample(struct sample_buf *buf, HBUF sample)
 	//assert(this_h->channel_no >= 2);
 */
 	if (this_h->buf_type == BUF_TYPE_SEQUENTIAL) {
-		printf("free buf %u %u\n", this_h->channel_no, this_h->number);
+		/* printf("free buf %u %u\n", this_h->channel_no, this_h->number); */
 		buf_free(sample);
 		return NULL;
 	}
