@@ -11,10 +11,13 @@
 #endif
 
 typedef struct tagSMETABUFER {
-	HBUF left;
-	HBUF right;
+	/** CAUTION: order matters */
 	HBUF left_fft;
 	HBUF right_fft;
+	HBUF left;
+	HBUF right;
+	/** CAUTION: doesn't rearrange first 4 fields */
+
 	HBUF sd_log;
 	HBUF sd_mod;
 	uint64_t timestamp;
@@ -30,14 +33,6 @@ typedef struct tagSTHRPARAMS {
 	pthread_mutex_t *print_mutex;
 #endif
 } STHRPARAMS, *PSTHRPARAMS;
-
-
-#define MAX_BUFFERED	3
-
-struct sample_buf {
-	HBUF ptr[MAX_BUFFERED];
-	uint8_t count;
-};
 
 #ifdef PRINT_DEBUG
 # define PRINT_LOCK(mutex)		pthread_mutex_lock(mutex)

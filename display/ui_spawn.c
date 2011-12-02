@@ -60,28 +60,41 @@ ui_updater_thr(void *args)
 			if ( meta != NULL ) {
 				TIMING_START();
 				/* calculate data. send to ui thread */
-
+#if 1 /* samples debug print */
 				PRINT_LOCK(params->params->print_mutex);
 
-				header = (PSSAMPLEHEADER)meta->left_fft->buf;
-				print_header(header, meta->left_fft->buf + HEADER_SIZE, meta->left_fft->size - HEADER_SIZE);
+				print_header((PSSAMPLEHEADER)meta->left->buf,
+								meta->left->buf + HEADER_SIZE,
+								meta->left->size - HEADER_SIZE);
 
-				header = (PSSAMPLEHEADER)meta->right_fft->buf;
-				print_header(header, meta->right_fft->buf + HEADER_SIZE, meta->right_fft->size - HEADER_SIZE);
+				print_header((PSSAMPLEHEADER)meta->right->buf,
+								meta->right->buf + HEADER_SIZE,
+								meta->right->size - HEADER_SIZE);
 
-				header = (PSSAMPLEHEADER)meta->sd_log->buf;
-				print_header(header, meta->sd_log->buf + HEADER_SIZE, meta->sd_log->size - HEADER_SIZE);
+				print_header((PSSAMPLEHEADER)meta->left_fft->buf,
+								meta->left_fft->buf + HEADER_SIZE,
+								meta->left_fft->size - HEADER_SIZE);
 
-				header = (PSSAMPLEHEADER)meta->sd_mod->buf;
-				print_header(header, meta->sd_mod->buf + HEADER_SIZE, meta->sd_mod->size - HEADER_SIZE);
+				print_header((PSSAMPLEHEADER)meta->right_fft->buf,
+								meta->right_fft->buf + HEADER_SIZE,
+								meta->right_fft->size - HEADER_SIZE);
+
+				print_header((PSSAMPLEHEADER)meta->sd_log->buf,
+								meta->sd_log->buf + HEADER_SIZE,
+								meta->sd_log->size - HEADER_SIZE);
+
+				print_header((PSSAMPLEHEADER)meta->sd_mod->buf,
+								meta->sd_mod->buf + HEADER_SIZE,
+								meta->sd_mod->size - HEADER_SIZE);
 
 				PRINT_UNLOCK(params->params->print_mutex);
+#endif
 
-
+#if 1 /* draw data */
 				header = (PSSAMPLEHEADER)meta->sd_log->buf;
 				glwin_draw_data(GRAPH_SAMPLES,
-								(float *)(meta->sd_log->buf + HEADER_SIZE),
-								(float *)(meta->sd_mod->buf + HEADER_SIZE),
+								(float *)(meta->left->buf + HEADER_SIZE),
+								(float *)(meta->right->buf + HEADER_SIZE),
 								header->samples);
 
 				glwin_draw_data_c(GRAPH_FFT,
@@ -95,7 +108,7 @@ ui_updater_thr(void *args)
 								header->samples);
 
 				glwin_render_data();
-
+#endif
 				metabuf_free(meta);
 
 				TIMING_END("  updater");
@@ -125,23 +138,20 @@ spawn_ui_thr(void *args)
 
 	glwin_draw_init();
 
-	glwin_set_color(GRAPH_FFT, LEFT, 0, 0.8, 0.2);
-	glwin_set_color(GRAPH_FFT, RIGHT, 0, 0.2, 0.8);
+	glwin_set_color(GRAPH_SAMPLES,	LEFT,  0.8, 0.0, 0.2);
+	glwin_set_color(GRAPH_SAMPLES,	RIGHT, 0.2, 0.8, 0.0);
+	glwin_set_color(GRAPH_FFT,		LEFT,  0.0, 0.8, 0.2);
+	glwin_set_color(GRAPH_FFT,		RIGHT, 0.0, 0.2, 0.8);
+	glwin_set_color(GRAPH_SDENS,	LEFT,  0.8, 0.4, 0.0);
+	glwin_set_color(GRAPH_SDENS,	RIGHT, 0.4, 0.2, 0.8);
 
-	glwin_set_limits(GRAPH_FFT, LEFT, -1.0, 1.0);
-	glwin_set_limits(GRAPH_FFT, RIGHT, -1.0, 1.0);
+	glwin_set_limits(GRAPH_SAMPLES,	LEFT,   -0.1,   0.1);
+	glwin_set_limits(GRAPH_SAMPLES,	RIGHT,  -0.1,   0.1);
+	glwin_set_limits(GRAPH_FFT,		LEFT,  -1.0,  1.0);
+	glwin_set_limits(GRAPH_FFT,		RIGHT, -1.0,  1.0);
+	glwin_set_limits(GRAPH_SDENS,	LEFT, -1.0, 1.0);
+	glwin_set_limits(GRAPH_SDENS,	RIGHT, -1.0,  1.0);
 
-	glwin_set_color(GRAPH_SAMPLES, LEFT, 0.8, 0.0, 0.2);
-	glwin_set_color(GRAPH_SAMPLES, RIGHT, 0.2, 0.8, 0.0);
-
-	glwin_set_limits(GRAPH_SAMPLES, LEFT, -200.0, 200.0);
-	glwin_set_limits(GRAPH_SAMPLES, RIGHT, -1.0, 1.0);
-
-	glwin_set_color(GRAPH_SDENS, LEFT, 0.8, 0.4, 0.0);
-	glwin_set_color(GRAPH_SDENS, RIGHT, 0.4, 0.2, 0.8);
-
-	glwin_set_limits(GRAPH_SDENS, LEFT, -100.0, 100.0);
-	glwin_set_limits(GRAPH_SDENS, RIGHT, -10.0, 10.0);
 
 	if ( (s = pthread_create(&ui_updater, NULL, ui_updater_thr, &updparams)) != 0) {
 		handle_error_en(s, "pthread_create()");

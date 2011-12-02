@@ -131,7 +131,7 @@ main(int argc, char *argv[])
     pa_sample_spec ss = {
     	/* for fft need PA_SAMPLE_FLOAT32LE or PA_SAMPLE_FLOAT32BE */
         .format = PA_SAMPLE_FLOAT32LE, // PA_SAMPLE_S16LE,
-        .rate = 22050,
+        .rate = 44100,
         .channels = 2
     };
 

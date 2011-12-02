@@ -2,9 +2,9 @@
 
 #include "audio_sample.h"
 
-//#define PRINT_MD5
+#define PRINT_MD5
 //#define PRINT_LIGHT
-#define ASAMPLE_SILENT
+//#define ASAMPLE_SILENT
 
 #ifdef PRINT_MD5
 #include <xcrypt.h>

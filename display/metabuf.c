@@ -7,7 +7,14 @@
 #include "buffer.h"
 #include "audio_sample.h"
 
-#define BUFFER_CHANNELS	2
+#define MAX_BUFFERED	10
+#define BUFFER_CHANNELS	4
+
+struct sample_buf {
+	HBUF ptr[MAX_BUFFERED];
+	uint8_t count;
+};
+
 static struct sample_buf sample_buf[BUFFER_CHANNELS];
 
 
@@ -23,6 +30,23 @@ void
 buffering_init()
 {
 	memset(sample_buf, 0, BUFFER_CHANNELS);
+}
+
+static void
+print_sample_buf(struct sample_buf *buf, char* prefix)
+{
+
+	int i;
+	printf("%s # meta %p. count %u ", prefix, buf, buf->count);
+	for (i = 0; i < buf->count; i++) {
+		if (i < buf->count) {
+			printf("<%u> ", ((PSSAMPLEHEADER)buf->ptr[i]->buf)->number);
+		} else {
+			printf("%p ", buf->ptr[i]);
+		}
+	}
+	printf("\n");
+
 }
 
 void
@@ -50,92 +74,153 @@ metabuf_free(PSMETABUFER metabuf)
 }
 
 static void
-shift(HBUF *buf, int shift, int diff)
+shift(struct sample_buf *buf, int shift)
 {
 	int i;
-	for (i = 0; i < shift + diff; i++) {
-		if (i < shift + diff - 1)
-			buf_free(buf[i]);
-		buf[i] = buf[i + shift];
-	}
-}
-#if 0
-static int
-have_sample()
-{
-	int res = -1;
-	int i;
+	HBUF save_ptr = NULL;
+	//printf("[shift] shift %i, of %u\n", shift, buf->count);
+	//print_sample_buf(buf, "shift 1 ");
+	for (i = 0; i < buf->count - shift + 1; i++) {
+		if (i < shift - 1) {
+			save_ptr = buf->ptr[i];
+			/*
+			printf("[reorderer] !! Drop sample # %u\n",
+					((PSSAMPLEHEADER)(buf->ptr[i]->buf))->number);
+			buf_free(buf->ptr[i]);
+			*/
+		}
+/*
+		printf("[%i].%u = [%i].%u\n",
+				i, 0,
+				i + 1 + shift, 0);
+*/
+		buf->ptr[i] = buf->ptr[i + 1 + shift];
 
+		if (save_ptr) {
+			buf_free(save_ptr);
+			save_ptr = NULL;
+		}
+	}
+
+	buf->count -= shift + 1;
+	//print_sample_buf(buf, "shift 2 ");
+}
+
+static int
+meta_channel(PSSAMPLEHEADER head)
+{
+	int res = head->channel_no - 1;
+
+	if (res >= CHANNELS_COUNT) {
+		res = CHANNELS_COUNT - 1;
+	}
+
+	if (head->buf_type == BUF_TYPE_SEQUENTIAL) {
+		res += CHANNELS_COUNT;
+	}
 
 	return res;
 }
-#endif
+
+static int
+have_sample(struct sample_buf *buf, uint32_t sample_no)
+{
+	int res = -1;
+	int i;
+	PSSAMPLEHEADER header;
+
+	//print_sample_buf(buf, "have_sample ");
+	for (i = 0; i < buf->count; i++) {
+		header = (PSSAMPLEHEADER)buf->ptr[i]->buf;
+		if (header->number == sample_no) {
+			res = i;
+			break;
+		}
+	}
+	return res;
+}
+
+static void
+push_buffered(HBUF sample, int channel)
+{
+	if (sample_buf[channel].count >= MAX_BUFFERED) {
+		int i;
+
+		for (i = 0; i < sample_buf[channel].count; i++) {
+			sample_buf[channel].ptr[i] = sample_buf[channel].ptr[i + 1];
+		}
+		sample_buf[channel].ptr[MAX_BUFFERED - 1] = sample;
+		sample_buf[channel].count = MAX_BUFFERED;
+	} else {
+		sample_buf[channel].ptr[sample_buf[channel].count++] = sample;
+	}
+}
+
 PSMETABUFER
 buferize_sample(HBUF sample)
 {
-	PSSAMPLEHEADER this_h = (PSSAMPLEHEADER)sample->buf;
-	PSMETABUFER res = 0;
-	int i, diff, have_pair = -1;
+	static int first_send = 0;
 
-	uint8_t this_ch = this_h->channel_no - 1;
-	uint8_t other_ch = 1 - this_ch;
-/*
-	//print_header(this_h, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
-	//assert(this_h->channel_no >= 2);
-*/
-	if (this_h->buf_type == BUF_TYPE_SEQUENTIAL) {
-		/* printf("free buf %u %u\n", this_h->channel_no, this_h->number); */
+	PSSAMPLEHEADER header = (PSSAMPLEHEADER)sample->buf;
+	PSMETABUFER res = NULL;
+	int i;
+
+	uint8_t this_ch = meta_channel(header);
+
+	int having[BUFFER_CHANNELS];
+	int have_set = 1;
+
+	if (first_send > 10) {
 		buf_free(sample);
 		return NULL;
 	}
 
-	if (sample_buf[this_ch].count >= MAX_BUFFERED) {
-		for (i = 0; i < MAX_BUFFERED - 1; i++) {
-			sample_buf[this_ch].ptr[i] = sample_buf[this_ch].ptr[i+1];
-		}
-		sample_buf[this_ch].ptr[MAX_BUFFERED - 1] = sample;
-		sample_buf[this_ch].count = MAX_BUFFERED;
-		/* printf("[reorderer] bufferize %u. max count reached.\n", this_ch); */
-	} else {
-		sample_buf[this_ch].ptr[sample_buf[this_ch].count] = sample;
-		sample_buf[this_ch].count += 1;
+	//print_header(header, sample->buf + HEADER_SIZE, sample->size - HEADER_SIZE);
+
+	for (i = 0; i < BUFFER_CHANNELS; i++) {
+		having[i] = -1;
 	}
 
-	for (i = 0; i < sample_buf[other_ch].count; i++) {
-		PSSAMPLEHEADER other_h = (PSSAMPLEHEADER)((sample_buf[other_ch].ptr[i])->buf);
-		if (other_h->number == this_h->number) {
-			have_pair = i;
+	//assert(this_h->channel_no >= 2);
+
+	/* push sample into buffer */
+	//printf("bufferize. actial channel %i\n", this_ch);
+	//print_sample_buf(&sample_buf[this_ch], "push_buffered 1 ");
+	push_buffered(sample, this_ch);
+	//print_sample_buf(&sample_buf[this_ch], "push_buffered 2 ");
+
+	/* check if we have complete set: left + right + left_fft + right_fft */
+	for (i = 0; i < BUFFER_CHANNELS; i++) {
+		//printf("having[%i] %i\n", i, have_sample(&sample_buf[i], header->number));
+		if ( (having[i] = have_sample(&sample_buf[i], header->number)) == -1 ) {
+			have_set = 0;
 			break;
 		}
 	}
 
-	if (have_pair != -1) {
+	/* pop complete set and return it, if we does */
+	if (have_set) {
+		//printf("!!! have sample !!!\n");
+		//first_send += 1;
+
 		res = metabuf_alloc();
-		if (this_ch == CHANNEL_LEFT) {
-			res->left_fft = sample_buf[this_ch].ptr[sample_buf[this_ch].count - 1];
-			res->right_fft = sample_buf[other_ch].ptr[sample_buf[other_ch].count - 1];
-		} else {
-			res->right_fft = sample_buf[this_ch].ptr[sample_buf[this_ch].count - 1];
-			res->left_fft = sample_buf[other_ch].ptr[sample_buf[other_ch].count - 1];
+		/* set struct as array of HBUF ptrs.
+		 * so we can loo through it */
+		HBUF *metabuf = (HBUF *)res;
+
+		for (i = 0; i < BUFFER_CHANNELS; i++) {
+			metabuf[i] = sample_buf[i].ptr[having[i]];
+			shift(&sample_buf[i], having[i]);
 		}
-
-		if (have_pair > sample_buf[this_ch].count - 1) {
-			diff = have_pair - sample_buf[this_ch].count - 1;
-			have_pair = sample_buf[this_ch].count;
-
-			shift(sample_buf[this_ch].ptr, have_pair, 0);
-			shift(sample_buf[other_ch].ptr, have_pair, diff);
-		} else {
-			diff = sample_buf[this_ch].count - 1 - have_pair;
-			have_pair += 1;
-
-			shift(sample_buf[this_ch].ptr, have_pair, diff);
-			shift(sample_buf[other_ch].ptr, have_pair, 0);
-		}
-		sample_buf[this_ch].count -= have_pair;
-		sample_buf[other_ch].count -= have_pair;
 	}
 
+
+#if 0
+	for (i = 0; i < BUFFER_CHANNELS; i++) {
+		print_sample_buf(&sample_buf[i], "bufferize  ");
+	}
+#endif
+	//printf("----------------------------------------\n");
 	return res;
 }
 

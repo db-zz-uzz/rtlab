@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/queue.h>
+#include <limits.h>
 #include <math.h>
 #include <pthread.h>
 
@@ -86,6 +87,9 @@ clamp_limits(float data, float min, float max)
 
 	if (data < min)
 		return min;
+
+	if (isinf(data) || isnan(data))
+		return 0;
 
 	return data;
 }
