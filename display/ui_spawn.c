@@ -141,14 +141,16 @@ spawn_ui_thr(void *args)
 	glwin_set_color(GRAPH_FFT,		LEFT,  0.0, 0.8, 0.2);
 	glwin_set_color(GRAPH_FFT,		RIGHT, 0.0, 0.2, 0.8);
 	glwin_set_color(GRAPH_SDENS,	LEFT,  0.8, 0.4, 0.0);
+	//glwin_set_color(GRAPH_SDENS,	LEFT,  0.0, 0.0, 0.0);
 	glwin_set_color(GRAPH_SDENS,	RIGHT, 0.4, 0.2, 0.8);
+	//glwin_set_color(GRAPH_SDENS,	RIGHT, 0.0, 0.0, 0.0);
 
-	glwin_set_limits(GRAPH_SAMPLES,	LEFT,   -0.1,   0.1);
-	glwin_set_limits(GRAPH_SAMPLES,	RIGHT,  -0.1,   0.1);
+	glwin_set_limits(GRAPH_SAMPLES,	LEFT,   -0.05,   0.05);
+	glwin_set_limits(GRAPH_SAMPLES,	RIGHT,  -0.05,   0.05);
 	glwin_set_limits(GRAPH_FFT,		LEFT,   0.0,  3.0);
 	glwin_set_limits(GRAPH_FFT,		RIGHT,  0.0,  3.0);
-	glwin_set_limits(GRAPH_SDENS,	LEFT, -1.0, 1.0);
-	glwin_set_limits(GRAPH_SDENS,	RIGHT, -1.0,  1.0);
+	glwin_set_limits(GRAPH_SDENS,	LEFT, -200.0, 200.0);
+	glwin_set_limits(GRAPH_SDENS,	RIGHT, -3.15,  3.15);
 
 
 	if ( (s = pthread_create(&ui_updater, NULL, ui_updater_thr, &updparams)) != 0) {

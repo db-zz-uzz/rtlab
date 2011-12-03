@@ -31,7 +31,7 @@ main(int argc, char *argv[])
 	HBUF *sample, input_l_sample, input_r_sample, dummy_sample, input_l_fft_sample, input_r_fft_sample;
 
 #ifdef PRINT_DEBUG
-	pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
+	pthread_mutex_t print_mutex = PTHREAD_	MUTEX_INITIALIZER;
 #endif
 
 	int reordfd[2];

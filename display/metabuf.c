@@ -83,9 +83,9 @@ shift(struct sample_buf *buf, int shift)
 	for (i = 0; i < buf->count - shift + 1; i++) {
 		if (i < shift - 1) {
 			save_ptr = buf->ptr[i];
-			/*
 			printf("[reorderer] !! Drop sample # %u\n",
 					((PSSAMPLEHEADER)(buf->ptr[i]->buf))->number);
+			/*
 			buf_free(buf->ptr[i]);
 			*/
 		}
@@ -277,7 +277,6 @@ calc_data(PSMETABUFER metabuf)
 	for (i = 0; i < samples; i++) {
 		coef = (float)sqrt(sxy[i*2] * sxy[i*2] + sxy[i*2+1] + sxy[i*2+1]);
 		sd_log_data[i] = (coef > 0) ? (float) 10 * log(coef) : 0;
-
 		sd_mod_data[i] = (sxy[i * 2] != 0) ? (float)atan2(sxy[i * 2 + 1], sxy[i * 2]) : 0;
 	}
 

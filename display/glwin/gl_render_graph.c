@@ -198,7 +198,6 @@ render_buffer(struct SGraph *graph, struct SRect *rect, uint32_t pixels)
 
 	render_line(graph, LEFT, buf->left, buf->samples, rect, pixels);
 	render_line(graph, RIGHT, buf->right, buf->samples, rect, pixels);
-
 }
 
 void
